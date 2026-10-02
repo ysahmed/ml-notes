@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ML Notes — intuitive machine learning lessons</title>
+<meta name="description" content="Plain-English, visually-driven lessons on machine learning algorithms, starting with logistic regression.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="assets/js/common.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="icon-btn" data-sidebar-toggle aria-label="Open navigation menu" aria-controls="sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <span class="topbar-title">ML Notes</span>
+</header>
+
+<div class="app">
+
+  <!-- ======================= sidebar ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">∑</span>
+      <a href="index.html">ML Notes</a>
+    </div>
+
+    <nav class="side-nav" aria-label="Site navigation">
+      <p class="side-label">Browse</p>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+      </ul>
+
+      <p class="side-label">Topics</p>
+      <ul>
+        <li>
+          <a href="topics/linear-regression.html">
+            <span>Linear Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="topics/logistic-regression.html">
+            <span>Logistic Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>K-Nearest Neighbors</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Decision Trees</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Neural Networks</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="side-foot">
+      <button class="theme-btn" data-theme-toggle type="button">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span class="theme-label">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================= main ======================= -->
+  <main id="main">
+    <div class="page-head">
+      <p class="eyebrow">Study notes</p>
+      <h1>Machine learning, explained simply</h1>
+      <p class="lede">Short lessons with pictures you can play with. Every page starts from
+        intuition, then adds the math only when it earns its place.</p>
+    </div>
+
+    <div class="callout">
+      <p class="callout-title">How to use this site</p>
+      <p>Pick a topic from the sidebar. Each lesson reads top to bottom: idea first,
+        formula second, interactive demo third. All the demos respond to your mouse —
+        hover, drag, and toggle things to build intuition.</p>
+    </div>
+
+    <h2 style="border-top:none;margin-top:36px;">Topics</h2>
+
+    <div class="cards">
+      <a class="card" href="topics/linear-regression.html">
+        <div class="card-top">
+          <span class="card-num">01</span>
+          <span class="badge done">done</span>
+        </div>
+        <h3>Linear Regression</h3>
+        <p>Finding the best straight line, why we square the misses, and how gradient
+          descent rolls downhill to the answer.</p>
+      </a>
+
+      <a class="card" href="topics/logistic-regression.html">
+        <div class="card-top">
+          <span class="card-num">02</span>
+          <span class="badge done">done</span>
+        </div>
+        <h3>Logistic Regression</h3>
+        <p>How a straight line is bent into a probability, why we need a special
+          loss function, and how the model learns step by step.</p>
+      </a>
+
+      <a class="card soon" aria-disabled="true">
+        <div class="card-top">
+          <span class="card-num">03</span>
+          <span class="badge">soon</span>
+        </div>
+        <h3>K-Nearest Neighbors</h3>
+        <p>Classification by asking a question a child would ask: "what are my
+          closest neighbors?"</p>
+      </a>
+
+      <a class="card soon" aria-disabled="true">
+        <div class="card-top">
+          <span class="card-num">04</span>
+          <span class="badge">soon</span>
+        </div>
+        <h3>Decision Trees</h3>
+        <p>Splitting questions, one yes/no at a time, until the answer is obvious.</p>
+      </a>
+
+      <a class="card soon" aria-disabled="true">
+        <div class="card-top">
+          <span class="card-num">05</span>
+          <span class="badge">soon</span>
+        </div>
+        <h3>Neural Networks</h3>
+        <p>Layers of simple units that learn curves no straight line can fit.</p>
+      </a>
+    </div>
+
+    <h2>What makes these notes different</h2>
+    <ul>
+      <li><strong>Plain English first.</strong> Formulas are translations of sentences you already understand.</li>
+      <li><strong>Interactive figures.</strong> Every important idea has a demo you can poke at.</li>
+      <li><strong>From-scratch code.</strong> Each topic ends with a small, readable implementation.</li>
+      <li><strong>Connected lessons.</strong> New topics link back to the ones you already know.</li>
+    </ul>
+
+    <div class="keybox">
+      <p class="keybox-title">Start here</p>
+      <p style="margin-bottom:10px;">New to the series? Open
+        <a href="topics/linear-regression.html"><strong>Linear Regression</strong></a> first —
+        it assumes nothing. Then continue to
+        <a href="topics/logistic-regression.html"><strong>Logistic Regression</strong></a>,
+        which builds directly on it.</p>
+    </div>
+
+    <footer style="margin-top:60px;font-size:13.5px;color:var(--muted);">
+      <p>ML Notes — study notes for personal learning · <span data-year>2026</span></p>
+    </footer>
+  </main>
+
+  <!-- ======================= page TOC (home has none) ======================= -->
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+</body>
+</html>

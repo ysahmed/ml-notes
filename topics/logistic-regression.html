@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logistic Regression — ML Notes</title>
+<meta name="description" content="An intuitive, visual introduction to logistic regression: why we bend a line into a probability, how the loss function works, and how the model learns.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/js/plots.js"></script>
+<script defer src="../assets/js/demos/lr-failure.js"></script>
+<script defer src="../assets/js/demos/sigmoid.js"></script>
+<script defer src="../assets/js/demos/boundary.js"></script>
+<script defer src="../assets/js/demos/loss.js"></script>
+<script defer src="../assets/js/demos/descent.js"></script>
+<script defer src="../assets/js/demos/regularization.js"></script>
+<script defer src="../assets/js/common.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="icon-btn" data-sidebar-toggle aria-label="Open navigation menu" aria-controls="sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <span class="topbar-title">Logistic Regression</span>
+</header>
+
+<div class="app">
+
+  <!-- ======================= sidebar ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">∑</span>
+      <a href="../index.html">ML Notes</a>
+    </div>
+
+    <nav class="side-nav" aria-label="Site navigation">
+      <p class="side-label">Browse</p>
+      <ul>
+        <li><a href="../index.html">Home</a></li>
+      </ul>
+
+      <p class="side-label">Topics</p>
+      <ul>
+        <li>
+          <a href="linear-regression.html">
+            <span>Linear Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="logistic-regression.html" aria-current="page">
+            <span>Logistic Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>K-Nearest Neighbors</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Decision Trees</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Neural Networks</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="side-foot">
+      <button class="theme-btn" data-theme-toggle type="button">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span class="theme-label">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================= main ======================= -->
+  <main id="main">
+
+    <div class="page-head">
+      <p class="eyebrow">Topic 02 · Classification</p>
+      <h1>Logistic Regression</h1>
+      <p class="lede">You already know how to draw a best-fit line. Here we bend that line
+        into a probability, and find out why "how wrong am I?" matters more than "how far off am I?".</p>
+    </div>
+
+    <!-- ---------------------------------------------------- 1 -->
+    <section id="big-idea">
+      <h2>1. The big idea: a line that answers yes/no</h2>
+
+      <p><strong>Linear regression</strong> predicts a <em>number</em>. Feed it a house's size,
+        it says "$312,000". Any answer is allowed — small, large, even negative. That freedom
+        is a feature when you're predicting prices.</p>
+
+      <p><strong>Logistic regression</strong> answers a different kind of question:
+        <em>yes or no</em> — is this email spam? Will this user click? Does this tumor look
+        malignant? The honest answer isn't just "yes", it's <strong>"how sure are you?"</strong>
+        — a probability from 0% to 100%.</p>
+
+      <p>So the natural move is: take the same data you'd feed a linear regression (numbers in,
+        label 0 or 1 out), fit a line… and then worry, because two things go wrong:</p>
+
+      <h3>Problem 1: the line can say impossible things</h3>
+      <p>A line never stops — it happily predicts <code>-0.3</code> or <code>1.7</code>.
+        But a probability of −30% or 170% doesn't mean anything. The output needs to be
+        <strong>trapped between 0 and 1</strong>.</p>
+
+      <h3>Problem 2: one weird point ruins everything</h3>
+      <p>A single extreme point drags the whole line toward it. Where the line crosses the
+        0.5 mark (our "yes/no" dividing line) can jump a long way — so one outlier silently
+        changes thousands of predictions.</p>
+
+      <figure class="demo" id="demo-failure">
+        <div class="demo-body"><canvas id="cv-failure"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="fail-dataset">Data</label>
+            <select id="fail-dataset">
+              <option value="clean">Two clean groups</option>
+              <option value="overlap">Groups that overlap</option>
+            </select>
+          </span>
+          <button class="btn" id="fail-outlier" type="button" aria-pressed="false">Add an outlier</button>
+          <span class="ro" id="fail-eq">line: y = …</span>
+          <span class="ro" id="fail-pred">prediction at right edge: …</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> blue dots are class 0, orange dots are class 1.
+          The blue line is ordinary linear regression, dashed line = the 0.5 cutoff we'd use
+          for decisions. Add the outlier and watch the cutoff — and the predictions — get silly.</figcaption>
+      </figure>
+
+      <div class="callout">
+        <p class="callout-title">The fix in one sentence</p>
+        <p>Keep the straight line, but <strong>wrap it in a squeezing function</strong> that
+          crushes any input into the 0–1 range. That wrapper is called the
+          <strong>sigmoid</strong> (or logistic) function — and that's the whole model.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 2 -->
+    <section id="sigmoid">
+      <h2>2. The squeeze: meet the sigmoid</h2>
+
+      <p>The sigmoid takes any number on the number line and squashes it into (0, 1):</p>
+
+      <div class="keybox">
+        <p class="keybox-title">The sigmoid function</p>
+        $$\sigma(z) = \frac{1}{1 + e^{-z}}$$
+        <p style="font-size:14.5px;color:var(--muted);">Read it as: "give me any number
+          <code>z</code>, I'll hand back a smooth probability."</p>
+      </div>
+
+      <p>What it does, in plain terms:</p>
+      <ul>
+        <li><strong>Input 0 → output 0.5.</strong> Perfectly undecided.</li>
+        <li><strong>Big positive input → output close to 1.</strong> At <code>z = 6</code> you
+          already get 0.9975 — "basically yes".</li>
+        <li><strong>Big negative input → output close to 0.</strong> At <code>z = −6</code> you
+          get 0.0025 — "basically no".</li>
+        <li><strong>It's symmetric:</strong> <code>σ(−z) = 1 − σ(z)</code>. Being 90% sure
+          "yes" is the same shape as being 90% sure "no".</li>
+        <li><strong>It never quite reaches 0 or 1</strong> — the curve approaches the edges
+          forever. (Handy later: the model never claims 100% certainty, so it can always learn more.)</li>
+      </ul>
+
+      <figure class="demo" id="demo-sigmoid">
+        <div class="demo-body"><canvas id="cv-sigmoid"></canvas></div>
+        <div class="demo-controls">
+          <button class="btn" id="sig-deriv" type="button" aria-pressed="false">Show the slope</button>
+          <span class="ro" id="sig-read">hover the curve →</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> move your mouse along the curve to read off
+          input → probability. Toggle <em>"Show the slope"</em> to see how steep the curve is
+          at each point — note it's steepest in the middle and <strong>flat at the ends</strong>.
+          Remember that; it comes back in section 5.</figcaption>
+      </figure>
+
+      <div class="callout warn">
+        <p class="callout-title">Slope you should remember</p>
+        <p>The slope of the sigmoid has a neat formula: <strong>the slope at any point is just
+          <code>σ(z) × (1 − σ(z))</code></strong> — that is, <em>answer × (1 − answer)</em>.
+          When you're near 0 or 1 the answer is almost fixed, so the product is near zero:
+          the curve is flat, and flat means "nothing to learn from here".</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 3 -->
+    <section id="model">
+      <h2>3. The model: weights, bias, and hidden meaning</h2>
+
+      <p>Logistic regression looks like this:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">The whole model</p>
+        $$z = w_1x_1 + w_2x_2 + \dots + b \qquad \text{then} \qquad \hat{p} = \sigma(z)$$
+        <p style="font-size:14.5px;color:var(--muted);">Step 1: score the features (a line).
+          Step 2: squash the score into a probability.</p>
+      </div>
+
+      <p>The pieces, in everyday language:</p>
+      <ul>
+        <li><strong>Weights <code>w</code></strong> — how much each feature matters.
+          A big positive weight means "this feature pushes the answer toward yes";
+          a negative weight means "toward no".</li>
+        <li><strong>Bias <code>b</code></strong> — the starting opinion before seeing any
+          feature. If spam is rare, the bias starts low.</li>
+        <li><strong><code>z</code></strong> — the raw score from the line, before squashing.</li>
+        <li><strong><code>ŷ</code> ("y-hat")</strong> — our predicted probability for class 1.
+          Above 0.5 → predict "yes", otherwise "no".</li>
+      </ul>
+
+      <h3>What the line is really predicting: the log-odds</h3>
+      <p>Un-doing the squeeze (algebra you can skip if you like) shows what <code>z</code>
+        actually means:</p>
+
+      <div class="derive">
+        <p class="derive-title">Where the formula comes from (3 lines)</p>
+        <ol>
+          <li>Start with the goal: <code>p</code> is the probability of "yes".</li>
+          <li>Take the <strong>odds</strong> — "yeses per no" — and then its logarithm:
+            $$\log\frac{p}{1-p} = z$$
+            Example: probability 0.75 → odds 3 (three yeses per no) → log-odds ≈ 1.10.</li>
+          <li>Solve that equation for <code>p</code> and you get exactly
+            <code>p = σ(z)</code> back again.</li>
+        </ol>
+        <p style="color:var(--muted);font-size:14.5px;">So the straight line predicts
+          <strong>log-odds</strong>, and the sigmoid converts log-odds back into a
+          probability. The name "logistic" comes from this log-odds (logit) link.</p>
+      </div>
+
+      <h3>The decision boundary</h3>
+      <p>Our yes/no rule is "probability above 0.5 → yes". Probability is 0.5 exactly when
+        <code>z = 0</code>. So predictions flip when the line crosses zero — and in multiple
+        dimensions, <code>z = 0</code> is just a <strong>line</strong> (or, with many features,
+        a flat sheet) drawn through the data. That's the <strong>decision boundary</strong>.</p>
+
+      <figure class="demo" id="demo-boundary">
+        <div class="demo-body"><canvas id="cv-boundary"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="bd-data">Data</label>
+            <select id="bd-data">
+              <option value="easy">Two clear blobs</option>
+              <option value="hard">Mixed blobs</option>
+              <option value="rotate">Diagonal split</option>
+            </select>
+          </span>
+          <button class="btn primary" id="bd-retrain" type="button">Retrain from scratch</button>
+          <span class="ro" id="bd-acc">accuracy: …</span>
+          <span class="ro" id="bd-weights">weights: …</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> the background tint shows the model's
+          confidence — <em>blue tint = probably "no"</em>, <em>amber tint = probably "yes"</em>,
+          white = unsure. The solid line is the decision boundary (where p = 0.5). Press
+          <em>Retrain</em> to start learning again from random weights and watch the boundary
+          find its way.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 4 -->
+    <section id="loss">
+      <h2>4. The cost: putting a price on being wrong</h2>
+
+      <p>A model is only as good as how it <em>grades itself</em>. When the true answer is
+        "yes" (1) and we predict a probability <code>p</code>, we charge ourselves:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Cost of one prediction (cross-entropy / log loss)</p>
+        $$\text{cost} = -\big[\, y \log(\hat{p}) + (1-y) \log(1-\hat{p}) \,\big]$$
+        <p style="font-size:14.5px;color:var(--muted);">If the label <code>y</code> is 1 the
+          second part vanishes and the cost is <code>−log(p)</code>. If <code>y</code> is 0,
+          the first part vanishes and it's <code>−log(1−p)</code>. The total cost is just all
+          the individual charges added up.</p>
+      </div>
+
+      <p>Why this particular shape? Two plain-English reasons:</p>
+      <ul>
+        <li><strong>It's the honest "how likely was this data?"</strong> Every point votes for
+          its true label with probability <code>p</code>; all votes multiply. Multiplying many
+          small probabilities gives an astronomically tiny number, so we take the
+          <code>log</code> to turn the product into a tidy sum — and flip the sign so that
+          <em>bigger cost = worse model</em>.</li>
+        <li><strong>Confident mistakes are punished hard.</strong> Predicting 0.9 when the
+          answer is 1 costs only 0.1. Predicting 0.01 costs 4.6 — <em>46 times worse</em>,
+          even though both were "off by 0.9". The message: never be cocky and wrong.</li>
+      </ul>
+
+      <h3>Why not just reuse the linear-regression loss (MSE)?</h3>
+      <p>Mean squared error — "average of (prediction − truth)²" — is the natural first guess,
+        and it fails for two visible reasons:</p>
+      <ol>
+        <li><strong>The slope dries up.</strong> Plug the sigmoid into MSE and, when the model
+          is confidently wrong, both curves are flat, so the gradient is nearly zero.
+          Learning almost stops exactly when you need it most.</li>
+        <li><strong>The landscape gets bumps.</strong> A bumpy (non-convex) loss has local
+          dips that aren't the bottom — gradient descent can get stuck. Log loss is a smooth
+          bowl: one bottom, always found.</li>
+      </ol>
+
+      <figure class="demo" id="demo-loss">
+        <div class="demo-body"><canvas id="cv-loss"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="loss-y">True label</label>
+            <select id="loss-y">
+              <option value="1">yes (y = 1)</option>
+              <option value="0">no (y = 0)</option>
+            </select>
+          </span>
+          <button class="btn" id="loss-slope" type="button" aria-pressed="false">Show learning push</button>
+          <span class="ro" id="loss-read">hover to compare →</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> horizontal axis = the probability the model
+          predicts; vertical axis = how much it costs. Blue = log loss (our choice),
+          red = squared error. Hover to compare charges. Toggle <em>"Show learning push"</em>
+          to draw arrows for how hard each loss pushes the model to change — the red arrow
+          shrinks to nothing at the edges (learning stalls exactly when the model is
+          confidently wrong), while the blue arrow keeps pushing.</figcaption>
+      </figure>
+
+      <div class="callout ok">
+        <p class="callout-title">Why the bowl shape matters</p>
+        <p>A <strong>convex</strong> loss is like a bowl: tilt it anywhere and a ball rolls to
+          the same bottom. Log loss has this property, which means gradient descent always
+          finds the best weights — no unlucky starting point can trap it.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 5 -->
+    <section id="training">
+      <h2>5. Training: rolling downhill</h2>
+
+      <p>We now have a model (section 3) and a grade sheet (section 4). Training means:
+        <strong>adjust the weights until the cost is as small as possible</strong>. The tool
+        is gradient descent, which works exactly like rolling a ball downhill:</p>
+
+      <ol>
+        <li><strong>Guess</strong> starting weights (random is fine).</li>
+        <li><strong>Check the slope</strong> of the cost under your feet — pointing downhill?</li>
+        <li><strong>Step</strong> in the opposite direction of the slope, by
+          <code>learning rate × slope</code>.</li>
+        <li>Repeat until the slope is ~0 (you've reached the bottom).</li>
+      </ol>
+
+      <div class="keybox">
+        <p class="keybox-title">The update rule</p>
+        $$w \leftarrow w - \eta \cdot \frac{\partial \,\text{cost}}{\partial w}$$
+        <p style="font-size:14.5px;color:var(--muted);"><code>η</code> (eta) is the
+          <strong>learning rate</strong> — how big each step is.</p>
+      </div>
+
+      <h3>The gradient has a beautiful shape</h3>
+      <p>Work through the calculus (chain rule: cost → probability → score) and almost
+        everything cancels, leaving:</p>
+
+      <div class="derive">
+        <p class="derive-title">The gradient, in one line</p>
+        <p style="text-align:center;margin:6px 0 10px;">$$\frac{\partial \,\text{cost}}{\partial w_j} = \frac{1}{N}\sum_{i=1}^{N} (\hat{p}_i - y_i)\, x_{ij}$$</p>
+        <p><strong>Sentence translation:</strong> "for every example, take how far off I was
+          (<code>prediction − truth</code>), multiply it by that example's feature value,
+          then average." That's it.</p>
+        <ul>
+          <li>Predicted <strong>too high</strong> → difference is positive → weight is pushed
+            <em>down</em>.</li>
+          <li>Predicted <strong>too low</strong> → difference is negative →
+            <code>−</code>negative = weight pushed <em>up</em>.</li>
+          <li>Predicted <strong>just right</strong> → difference ≈ 0 → no movement. We've arrived.</li>
+        </ul>
+      </div>
+
+      <p>Choosing the learning rate <code>η</code> is a balancing act:</p>
+      <ul>
+        <li><strong>Too small</strong> — correct direction, but you'll be here all day.</li>
+        <li><strong>Too big</strong> — each step overshoots the valley and you bounce
+          (or fly off entirely).</li>
+        <li><strong>Just right</strong> — quick, steady descent to the bottom.</li>
+      </ul>
+
+      <figure class="demo" id="demo-descent">
+        <div class="demo-body"><canvas id="cv-descent"></canvas></div>
+        <div class="demo-controls">
+          <button class="btn primary" id="des-play" type="button">▶ Play</button>
+          <button class="btn" id="des-step" type="button">Step</button>
+          <button class="btn" id="des-reset" type="button">Reset</button>
+          <span class="ctrl">
+            <label for="des-lr">Learning rate</label>
+            <input type="range" id="des-lr" min="0" max="100" value="35">
+          </span>
+          <span class="ro" id="des-info">iter 0 · cost …</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> the shading is the cost seen from above —
+          <em>saturated blue = the cheap valley</em> (the bottom of the bowl), pale = expensive.
+          The line is the path the weights took; the red dot is where they are now. Try a
+          <em>huge</em> learning rate and watch it bounce past the valley — then a tiny one
+          and count how slow it is.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 6 -->
+    <section id="regularization">
+      <h2>6. Keeping it simple: regularization</h2>
+
+      <p>With enough freedom, a model can get a <em>perfect</em> score on its training data
+        by memorizing every quirk and stray point — including pure noise. Then it fails on
+        new data. That's <strong>overfitting</strong>: straight-A student who's never solved
+        a problem they haven't seen before.</p>
+
+      <p><strong>Regularization</strong> is a penalty added to the cost that says:
+        "getting the right answer matters — but so does keeping your weights small."</p>
+
+      <div class="keybox">
+        <p class="keybox-title">L2 regularization (the common one, a.k.a. "Ridge")</p>
+        $$\text{total cost} = \text{log loss} + \frac{\lambda}{2}\sum_j w_j^2$$
+        <p style="font-size:14.5px;color:var(--muted);"><code>λ</code> (lambda) is the dial:
+          0 = no restraint, large = "keep those weights tiny!". Huge weights mean the model
+          is reacting violently to small features — usually a sign it's fitting noise.</p>
+      </div>
+
+      <div class="keybox">
+        <p class="keybox-title">L1 regularization (a.k.a. "Lasso")</p>
+        $$\text{total cost} = \text{log loss} + \lambda \sum_j |w_j|$$
+        <p style="font-size:14.5px;color:var(--muted);">Same idea, different shape. The
+          absolute-value penalty is so eager to shrink weights that it pushes
+          <strong>useless features all the way to exactly 0</strong> — the model
+          automatically deletes them. Nice when you suspect some features are just noise.</p>
+      </div>
+
+      <figure class="demo" id="demo-regularization">
+        <div class="demo-body"><canvas id="cv-regularization"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="reg-type">Penalty</label>
+            <select id="reg-type">
+              <option value="l2">L2 (shrink)</option>
+              <option value="l1">L1 (shrink to zero)</option>
+              <option value="none">None</option>
+            </select>
+          </span>
+          <span class="ctrl">
+            <label for="reg-lambda">λ = <span id="reg-lambda-val">0.01</span></label>
+            <input type="range" id="reg-lambda" min="0" max="100" value="20">
+          </span>
+          <span class="ro" id="reg-weights">weights: …</span>
+          <span class="ro" id="reg-acc">accuracy: …</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> feature 1 is genuinely useful; feature 2 is
+          pure noise. Slide λ upward — the noisy weight shrinks (with L1, it hits exactly
+          zero) and the boundary straightens out. Overdoing λ flattens everything:
+          <em>too simple is also wrong</em>.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 7 -->
+    <section id="evaluation">
+      <h2>7. Did it actually work? Reading the results</h2>
+
+      <p>Accuracy ("what fraction did we get right?") is misleading as soon as classes are
+        unbalanced. If only 5% of emails are spam, a model that <strong>always says
+        "not spam"</strong> scores 95% while being useless. The
+        <strong>confusion matrix</strong> shows who got confused with whom:</p>
+
+      <table>
+        <thead>
+          <tr><th></th><th>Predicted: spam</th><th>Predicted: not spam</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Actually spam</th><td><strong>TP = 48</strong> ✅ caught</td><td>FN = 2 missed</td></tr>
+          <tr><th>Actually not spam</th><td>FP = 6 false alarm</td><td><strong>TN = 44</strong> ✅ correctly ignored</td></tr>
+        </tbody>
+      </table>
+
+      <p>From those four numbers, three useful questions:</p>
+      <ul>
+        <li><strong>Precision</strong> — "when it raises an alarm, how often is it right?"</li>
+      </ul>
+      <p style="text-align:center;">$$\text{precision} = \frac{TP}{TP + FP}$$</p>
+      <ul>
+        <li><strong>Recall</strong> — "of all the real cases, how many did we catch?"</li>
+      </ul>
+      <p style="text-align:center;">$$\text{recall} = \frac{TP}{TP + FN}$$</p>
+      <ul>
+        <li><strong>ROC curve / AUC</strong> — slide the 0.5 cutoff down toward 0 and you
+          catch more (recall up) but cry wolf more (precision down). The ROC curve plots
+          that trade-off for every possible cutoff; the <strong>AUC</strong> compresses it to
+          one number: 1.0 = perfect, 0.5 = coin flip.</li>
+      </ul>
+
+      <div class="callout">
+        <p class="callout-title">Rule of thumb</p>
+        <p>Catching every fraud case matters more than a few false alarms? Optimize
+          <strong>recall</strong>. A spam filter that deletes real emails is worse than one
+          that lets spam through? Optimize <strong>precision</strong>. There's no single
+          "correct" number — decide what mistakes hurt most.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 8 -->
+    <section id="softmax">
+      <h2>8. More than two answers: softmax regression</h2>
+
+      <p>Yes / no is fine, but what about "cat, dog, or bird?" <strong>Softmax regression</strong>
+        (a.k.a. multinomial logistic regression) generalizes everything above:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Softmax: one score per class, normalized</p>
+        $$\hat{p}_k = \frac{e^{z_k}}{\sum_{c} e^{z_c}}$$
+        <p style="font-size:14.5px;color:var(--muted);">Each class gets its own line
+          <code>z_k = w_k · x + b_k</code>. We exponentiate (make positive, amplify leaders),
+          then divide by the total so all probabilities add up to exactly 1.</p>
+      </div>
+
+      <p>The same story, restated: scores from lines → a squashing step → a probability
+        distribution → log-loss cost → gradient descent. With two classes, softmax gives the
+        same answers as the sigmoid model you just learned. It's the same idea wearing a
+        bigger hat.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 9 -->
+    <section id="code">
+      <h2>9. The whole thing in ~40 lines of NumPy</h2>
+
+      <p>No libraries beyond NumPy. The comments are the same intuition as above, in order.</p>
+
+<pre><code class="language-python">import numpy as np
+
+def sigmoid(z):
+    """Squeeze any number into the (0, 1) range."""
+    return 1 / (1 + np.exp(-z))
+
+def train(X, y, lr=0.1, steps=1000, lam=0.0):
+    """Fit weights w and bias b with gradient descent + optional L2 (lam)."""
+    n_samples, n_features = X.shape
+    w = np.zeros(n_features)      # start with a blank slate
+    b = 0.0
+
+    for _ in range(steps):
+        # 1. Score each example, then squeeze scores into probabilities
+        z = X @ w + b
+        p = sigmoid(z)
+
+        # 2. Gradients: (how wrong) x (feature value), averaged over the data
+        error = p - y                        # prediction - truth
+        dw = (X.T @ error) / n_samples + lam * w   # the + lam*w is the L2 pull
+        db = error.mean()
+
+        # 3. Step downhill
+        w -= lr * dw
+        b -= lr * db
+
+    return w, b
+
+def predict_proba(X, w, b):
+    """Turn features into probabilities of class 1."""
+    return sigmoid(X @ w + b)
+
+def predict(X, w, b, threshold=0.5):
+    """Same, but forced to a yes/no answer."""
+    return (predict_proba(X, w, b) &gt;= threshold).astype(int)
+
+# ---- try it on a small two-blob dataset ----
+rng = np.random.default_rng(0)
+X = np.vstack([rng.normal([-1.5, -1.5], 1.0, (50, 2)),
+               rng.normal([ 1.5,  1.5], 1.0, (50, 2))])
+y = np.array([0] * 50 + [1] * 50)
+
+w, b = train(X, y, lr=0.5, steps=2000, lam=0.01)
+acc = (predict(X, w, b) == y).mean()
+
+print("weights:", np.round(w, 3), " bias:", round(float(b), 3))
+print("accuracy:", f"{acc:.0%}")
+</code></pre>
+
+      <p>Typical output:</p>
+<pre><code>weights: [1.076 1.093]  bias: -0.03
+accuracy: 98%</code></pre>
+
+      <p>That's the entire algorithm. Everything else in this lesson — the squeeze, the
+        cost, the gradient, the penalty — is visible right here in the code.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 10 -->
+    <section id="cheatsheet">
+      <h2>10. Cheat sheet</h2>
+
+      <div class="cheatsheet">
+        <div class="cs-item">
+          <h4>The model</h4>
+          <p>$$\hat{p} = \sigma(w \cdot x + b)$$</p>
+          <p>Line → squeeze → probability.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Sigmoid</h4>
+          <p>$$\sigma(z) = \frac{1}{1+e^{-z}}, \quad \sigma'(z)=\sigma(z)(1-\sigma(z))$$</p>
+          <p>S-shaped, 0→0.5, flat at the ends.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Decision boundary</h4>
+          <p>$$w \cdot x + b = 0$$</p>
+          <p>Where the probability crosses 0.5.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Cost (log loss)</h4>
+          <p>$$-\big[y\log \hat{p} + (1-y)\log(1-\hat{p})\big]$$</p>
+          <p>Smooth bowl; confident mistakes cost dearly.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Gradient</h4>
+          <p>$$\frac{\partial L}{\partial w} = \frac{1}{N} X^{T}(\hat{p}-y)$$</p>
+          <p>(prediction − truth) × feature, averaged.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Update step</h4>
+          <p>$$w \leftarrow w - \eta \,\nabla L$$</p>
+          <p>Step opposite the slope; η = step size.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Regularization</h4>
+          <p>$$L + \tfrac{\lambda}{2}\|w\|^2 \;\;(\text{L2}) \qquad L + \lambda\|w\|_1 \;\;(\text{L1})$$</p>
+          <p>Shrink weights; L1 can zero them out.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Many classes</h4>
+          <p>$$\hat{p}_k = \frac{e^{z_k}}{\sum_c e^{z_c}}$$</p>
+          <p>Softmax — same story, more heads.</p>
+        </div>
+      </div>
+
+      <div class="callout ok">
+        <p class="callout-title">The five-second recap</p>
+        <p>A line scores the features → the sigmoid turns the score into a probability →
+          log loss punishes overconfident mistakes → gradient descent nudges the weights
+          downhill → regularization keeps them from memorizing noise.</p>
+      </div>
+    </section>
+
+    <footer style="margin-top:64px;font-size:13.5px;color:var(--muted);">
+      <p><a href="../index.html">← All topics</a> · Previous: <a href="linear-regression.html">Linear Regression</a> · Next up: K-Nearest Neighbors (coming soon)</p>
+      <p>ML Notes — <span data-year>2026</span></p>
+    </footer>
+  </main>
+
+  <!-- ======================= page TOC ======================= -->
+  <details class="page-toc" id="page-toc" open>
+    <summary>On this page</summary>
+    <p class="toc-title">On this page</p>
+    <nav aria-label="Table of contents">
+      <ol>
+        <li><a href="#big-idea">1. A line that answers yes/no</a></li>
+        <li><a href="#sigmoid">2. The squeeze: sigmoid</a></li>
+        <li><a href="#model">3. Weights, bias, log-odds</a></li>
+        <li><a href="#loss">4. The cost of being wrong</a></li>
+        <li><a href="#training">5. Training: rolling downhill</a></li>
+        <li><a href="#regularization">6. Keeping it simple (L1/L2)</a></li>
+        <li><a href="#evaluation">7. Reading the results</a></li>
+        <li><a href="#softmax">8. More than two answers</a></li>
+        <li><a href="#code">9. NumPy from scratch</a></li>
+        <li><a href="#cheatsheet">10. Cheat sheet</a></li>
+      </ol>
+    </nav>
+  </details>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+</body>
+</html>
