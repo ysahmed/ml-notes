@@ -37,6 +37,16 @@
         <li><a href="index.html">Home</a></li>
       </ul>
 
+      <p class="side-label">Foundations</p>
+      <ul>
+        <li>
+          <a href="foundations.html">
+            <span>Foundations</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+      </ul>
+
       <p class="side-label">Topics</p>
       <ul>
         <li>
@@ -52,9 +62,15 @@
           </a>
         </li>
         <li>
-          <a class="soon" aria-disabled="true" tabindex="-1">
+          <a href="topics/k-nearest-neighbors.html">
             <span>K-Nearest Neighbors</span>
-            <span class="badge">soon</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="topics/naive-bayes.html">
+            <span>Naive Bayes</span>
+            <span class="badge done">done</span>
           </a>
         </li>
         <li>
@@ -120,19 +136,29 @@
           loss function, and how the model learns step by step.</p>
       </a>
 
-      <a class="card soon" aria-disabled="true">
+      <a class="card" href="topics/k-nearest-neighbors.html">
         <div class="card-top">
           <span class="card-num">03</span>
-          <span class="badge">soon</span>
+          <span class="badge done">done</span>
         </div>
         <h3>K-Nearest Neighbors</h3>
         <p>Classification by asking a question a child would ask: "what are my
           closest neighbors?"</p>
       </a>
 
-      <a class="card soon" aria-disabled="true">
+      <a class="card" href="topics/naive-bayes.html">
         <div class="card-top">
           <span class="card-num">04</span>
+          <span class="badge done">done</span>
+        </div>
+        <h3>Naive Bayes</h3>
+        <p>The probabilistic voter: counts, Bayes' rule, and one deliberately
+          unrealistic assumption that works anyway.</p>
+      </a>
+
+      <a class="card soon" aria-disabled="true">
+        <div class="card-top">
+          <span class="card-num">05</span>
           <span class="badge">soon</span>
         </div>
         <h3>Decision Trees</h3>
@@ -141,7 +167,7 @@
 
       <a class="card soon" aria-disabled="true">
         <div class="card-top">
-          <span class="card-num">05</span>
+          <span class="card-num">06</span>
           <span class="badge">soon</span>
         </div>
         <h3>Neural Networks</h3>
@@ -159,11 +185,15 @@
 
     <div class="keybox">
       <p class="keybox-title">Start here</p>
-      <p style="margin-bottom:10px;">New to the series? Open
-        <a href="topics/linear-regression.html"><strong>Linear Regression</strong></a> first —
-        it assumes nothing. Then continue to
+      <p style="margin-bottom:10px;">New to the series? Read
+        <a href="foundations.html"><strong>Foundations</strong></a> first — it's the shared
+        vocabulary (and it assumes nothing). Then open
+        <a href="topics/linear-regression.html"><strong>Linear Regression</strong></a> to
+        meet your first algorithm, continue to
         <a href="topics/logistic-regression.html"><strong>Logistic Regression</strong></a>,
-        which builds directly on it.</p>
+        which builds directly on it, and after that
+        <a href="topics/k-nearest-neighbors.html"><strong>K-Nearest Neighbors</strong></a>
+        shows the opposite philosophy — no formula at all.</p>
     </div>
 
     <footer style="margin-top:60px;font-size:13.5px;color:var(--muted);">

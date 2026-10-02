@@ -402,6 +402,11 @@ figure.demo {
   overflow: hidden;
 }
 figure.demo .demo-body { padding: 16px 16px 4px; }
+figure.demo .demo-body.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
 figure.demo canvas {
   display: block;
   width: 100%;

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Nearest Neighbors — ML Notes</title>
+<meta name="description" content="An intuitive, visual introduction to K-Nearest Neighbors: predicting by looking at the closest examples, choosing k, why feature scaling matters, and the curse of dimensionality.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/js/plots.js"></script>
+<script defer src="../assets/js/demos/knn-neighbor.js"></script>
+<script defer src="../assets/js/demos/knn-boundary.js"></script>
+<script defer src="../assets/js/demos/knn-scale.js"></script>
+<script defer src="../assets/js/common.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="icon-btn" data-sidebar-toggle aria-label="Open navigation menu" aria-controls="sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <span class="topbar-title">K-Nearest Neighbors</span>
+</header>
+
+<div class="app">
+
+  <!-- ======================= sidebar ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">∑</span>
+      <a href="../index.html">ML Notes</a>
+    </div>
+
+    <nav class="side-nav" aria-label="Site navigation">
+      <p class="side-label">Browse</p>
+      <ul>
+        <li><a href="../index.html">Home</a></li>
+      </ul>
+
+      <p class="side-label">Foundations</p>
+      <ul>
+        <li>
+          <a href="../foundations.html">
+            <span>Foundations</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+      </ul>
+
+      <p class="side-label">Topics</p>
+      <ul>
+        <li>
+          <a href="linear-regression.html">
+            <span>Linear Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="logistic-regression.html">
+            <span>Logistic Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="k-nearest-neighbors.html" aria-current="page">
+            <span>K-Nearest Neighbors</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="naive-bayes.html">
+            <span>Naive Bayes</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Decision Trees</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Neural Networks</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="side-foot">
+      <button class="theme-btn" data-theme-toggle type="button">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span class="theme-label">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================= main ======================= -->
+  <main id="main">
+
+    <div class="page-head">
+      <p class="eyebrow">Topic 03 · Classification</p>
+      <h1>K-Nearest Neighbors</h1>
+      <p class="lede">The simplest idea in machine learning: don't learn a formula at all —
+        just keep the data around and, when a new question arrives, look at the most similar
+        examples you've seen before.</p>
+    </div>
+
+    <!-- ---------------------------------------------------- 1 -->
+    <section id="big-idea">
+      <h2>1. The big idea: just ask the neighbors</h2>
+
+      <p>Everything so far <em>compressed</em> the data. Linear regression squeezed it into a
+        line; logistic regression into weights and a bend. Both throw the original examples
+        away after training and keep only the formula.</p>
+
+      <p><strong>K-Nearest Neighbors (KNN) refuses to do that.</strong> It keeps every
+        single row of your data and answers each new question the way a person would:
+        <em>"let me think of the most similar cases I've seen."</em></p>
+
+      <div class="keybox">
+        <p class="keybox-title">The whole algorithm</p>
+        <p>To predict something new: find the <strong><code>k</code> most similar</strong>
+          examples you've stored, and let them <strong>vote</strong>. The winning class is
+          your answer.</p>
+        <p style="font-size:14.5px;color:var(--muted);">That's it. There is no cost function,
+          no gradient descent, no learning rate. "Training" is just copying the data.</p>
+      </div>
+
+      <p>In the vocabulary of <a href="../foundations.html#param-vs-non">Foundations
+        §8</a>, this makes KNN <strong>non-parametric</strong>: no shape was assumed up
+        front, nothing was fitted — the data itself <em>is</em> the model.</p>
+
+      <div class="callout">
+        <p class="callout-title">The lazy learner</p>
+        <p>KNN is famously called a <strong>lazy learner</strong>: all the work is pushed
+          from training time to prediction time. Training is instant (nothing to compute),
+          but <em>every</em> prediction means measuring the new point against every stored
+          point. The earlier models paid upfront and answered fast; KNN refuses to pay
+          upfront and answers slowly. Remember this in section 7 — the bill always arrives.</p>
+      </div>
+
+      <p>And <em>similar</em> is doing all the heavy lifting here — which forces the next
+        question: similar <strong>how</strong>?</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 2 -->
+    <section id="distance">
+      <h2>2. What "closest" means: measuring distance</h2>
+
+      <p>Each example is a list of numbers — its <em>features</em>. To compare two examples,
+        we measure the distance between those lists. The everyday choice is straight-line
+        distance, the same rule as the hypotenuse of a triangle:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Euclidean distance — the straight line between two points</p>
+        $$d(p, q) = \sqrt{(p_1 - q_1)^2 + (p_2 - q_2)^2 + \cdots + (p_n - q_n)^2}$$
+        <p style="font-size:14.5px;color:var(--muted);">Difference per feature → square each
+          (so negatives can't hide) → add them up → square root. With two features it's
+          literally the Pythagorean theorem. (The alternative that skips the square root —
+          plain sum of differences — is called <em>Manhattan distance</em>; it behaves
+          similarly for KNN.)</p>
+      </div>
+
+      <p>One important subtlety: KNN doesn't care about the <em>size</em> of the distances,
+        only their <strong>order</strong> — which point is first, second, third. Ranking is
+        all the algorithm ever uses. (But keep that ranking honest — section 5 shows what
+        happens when it isn't.)</p>
+
+      <figure class="demo" id="demo-knn-nbr">
+        <div class="demo-body"><canvas id="cv-knn-nbr"></canvas></div>
+        <div class="demo-controls">
+          <span class="ro" id="knnnbr-vote">vote → …</span>
+          <span class="ro" id="knnnbr-dist">distances: …</span>
+          <span class="demo-note">move your pointer over the chart</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> the white ring is a new point you want to
+          classify — move your pointer to carry it around. Faint lines reach every stored
+          point; the <strong>5 thick lines are the nearest neighbors</strong>, colored by
+          their class, and the badge shows their vote. Watch the vote flip as you cross into
+          a different neighborhood.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 3 -->
+    <section id="choosing-k">
+      <h2>3. Choosing k: how big is the neighborhood?</h2>
+
+      <p><code>k</code> is a dial between two failure modes:</p>
+      <ul>
+        <li><strong>k = 1 — paranoid.</strong> The prediction copies a single point, so every
+          speck of noise gets its own island of territory. The model hugs the training data
+          perfectly and guesses badly on anything new (<strong>overfitting</strong>).</li>
+        <li><strong>k = huge — a mob.</strong> The vote is taken over so many points that the
+          local pattern drowns out; with two classes, if k reaches the whole dataset, every
+          prediction is just "whichever class is more common overall" (<strong>underfitting</strong>).</li>
+      </ul>
+
+      <p>Same two failure modes from <a href="../foundations.html#bias-variance">Foundations
+        §7</a> — <code>k</code> is that section's flexibility dial, in vote form: the demo
+        below reports train vs test accuracy as you drag it.</p>
+
+      <figure class="demo" id="demo-knn-bnd">
+        <div class="demo-body"><canvas id="cv-knn-bnd"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="knn-k">k</label>
+            <input type="range" id="knn-k" min="1" max="31" step="2" value="5">
+          </span>
+          <span class="ro" id="knn-bnd-k">k = …</span>
+          <span class="ro" id="knn-bnd-acc">train … · test …</span>
+          <span class="demo-note">hover a point to see its neighbors vote</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> shaded regions are where KNN would predict
+          each class. <strong>Filled dots = training, hollow dots = test data</strong> the
+          model has never seen. Slide k to 1 and watch the boundary shatter into noise (train
+          accuracy 100% — it memorized) while test accuracy suffers; slide it up and the
+          boundary smooths into a clean diagonal. The gap between the two percentages is the
+          honesty check.</figcaption>
+      </figure>
+
+      <div class="callout">
+        <p class="callout-title">Rules of thumb for k</p>
+        <p>Use an <strong>odd k for two classes</strong> (no tied votes). Start somewhere in
+          <strong>3–15</strong>, then let the test accuracy from the demo above decide: if
+          test beats train by a mile, k is too small; if both sag, k is too big.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 4 -->
+    <section id="vote-or-average">
+      <h2>4. Vote or average: one algorithm, two jobs</h2>
+
+      <p>The same "look at the neighbors" idea works whether you're asked a yes/no question
+        or a number — only the way neighbors are combined changes:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Two ways to combine the k neighbors</p>
+        $$\text{classification: } \hat{y} = \text{most common class among the } k
+        \qquad \text{regression: } \hat{y} = \frac{1}{k} \sum_{i=1}^{k} y_i$$
+        <p style="font-size:14.5px;color:var(--muted);">Vote if the answer is a label
+          (spam / not spam) · average if the answer is a quantity (price of a house like
+          these five).</p>
+      </div>
+
+      <p>So KNN quietly belongs to both topics you've already read: it predicts numbers like
+        linear regression, and classes like logistic regression — it just refuses to fit a
+        formula to do it. (Averaging neighbors is also a nice reminder of why the
+        <em>squared</em> error debate mattered: the mean is least-squares' favorite
+        summarizer.)</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 5 -->
+    <section id="scaling">
+      <h2>5. Why scaling matters: big units bully the vote</h2>
+
+      <p>Distance formulas are only as sensible as their units. Suppose you store houses with
+        <strong>size in sq ft</strong> (300–2400) and <strong>age in years</strong> (1–30).
+        A size difference of 500 sq ft squares to <em>250,000</em>. An age difference of 10
+        years squares to <em>100</em>. The size term is thousands of times louder — so
+        "nearest" quietly becomes "nearest in size", and age stops counting at all, no matter
+        how much you paid for it as a feature.</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Scaling — give every feature the same volume</p>
+        $$x' = \frac{x - \min}{\max - \min}$$
+        <p style="font-size:14.5px;color:var(--muted);">Squash each feature into 0–1 before
+          measuring distances. Now a "big difference" means the same thing for every feature.
+          (Other recipes exist — subtract the average, divide by the spread — the idea is
+          always the same: <strong>same units, same voice</strong>.)</p>
+      </div>
+
+      <figure class="demo" id="demo-knn-scl">
+        <div class="demo-body"><canvas id="cv-knn-scl"></canvas></div>
+        <div class="demo-controls">
+          <button class="btn" id="knnscale-raw" type="button" aria-pressed="true">Raw features</button>
+          <button class="btn" id="knnscale-scaled" type="button" aria-pressed="false">Scaled 0–1</button>
+          <span class="ro" id="knnscale-info">every distance is …</span>
+          <span class="demo-note">move your pointer to carry the query point</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> identical data, identical k — only the
+          units change. <strong>Raw:</strong> the boundary is one straight cut by size
+          alone (age never gets a vote), and the readout shows size dominating almost every
+          bit of the distance. <strong>Scaled:</strong> age gets a voice, the boundary tilts
+          to use both features, and a different set of neighbors gets invited to the
+          vote.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 6 -->
+    <section id="dimensions">
+      <h2>6. When dimensions multiply: distance loses its meaning</h2>
+
+      <p>Adding features sounds harmless — more information, better decisions? For KNN it's
+        dangerous. Space gets sparser exponentially fast: with enough features, <strong>every
+        point drifts away from every other point</strong>, and the "nearest" neighbor ends up
+        almost as far away as the farthest one.</p>
+
+      <div class="callout warn">
+        <p class="callout-title">The curse of dimensionality, in plain English</p>
+        <p>Distance only means something if there's <em>room</em> for near and far to be
+          different. In 2 dimensions, "closest table in the café" is a real, useful idea. In
+          50 dimensions, the closest table is barely closer than the one across town — so
+          letting it vote is nearly random. When distances stop telling stories, KNN stops
+          working. Prefer <strong>fewer, meaningful features</strong> over dumping everything
+          you have into the model.</p>
+      </div>
+
+      <p>This is also why section 5's scaling isn't optional: one irrelevant noisy feature
+        can flatten all the real distances — one more way for the ranking to lie.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 7 -->
+    <section id="evaluation">
+      <h2>7. Does it actually work? Reading the results</h2>
+
+      <p>The score that matters for classification is simple: <strong>accuracy</strong> —
+        out of the predictions, what fraction were right? The catch is <em>which</em> data
+        you score on:</p>
+
+      <ul>
+        <li><strong>Train accuracy is a lie for KNN.</strong> With k = 1, every stored point
+          is its own nearest neighbor — it always votes for the point's own label — so train
+          accuracy is guaranteed 100% no matter how useless the model is. Go back to the
+          demo: set k = 1 and read the two numbers.</li>
+        <li><strong>Test accuracy is the confession.</strong> Score only on held-out points
+          the model never stored (the hollow dots). The gap between the two numbers is
+          exactly how much the model memorized instead of learned.</li>
+      </ul>
+
+      <p>One thing accuracy can't show is <em>which</em> kind of mistake you're making.
+        When the classes are unbalanced — or one error hurts more than the other (missing a
+        fraud case vs. annoying a customer) — accuracy is the wrong score to trust. Reach
+        for the <strong>precision / recall / F1</strong> toolkit instead; it's worked out
+        with formulas and a worked example in
+        <a href="logistic-regression.html#evaluation">section 7 of Logistic Regression</a>,
+        and it applies here unchanged: KNN's votes are just another classifier's answers.</p>
+
+      <div class="callout ok">
+        <p class="callout-title">And don't forget the bill from section 1</p>
+        <p>Each prediction scans <strong>every stored row</strong>. Double the data and
+          predictions take twice as long — forever. KNN is wonderful up to tens of
+          thousands of rows; past that, people reach for models that pay once and answer
+          fast (the ones from topics 01 and 02, or the ones coming next).</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 8 -->
+    <section id="code">
+      <h2>8. The whole thing in ~30 lines of NumPy</h2>
+
+      <p>No library needed — KNN is distance, sorting, and a vote:</p>
+
+<pre><code>import numpy as np
+
+def knn_predict(X, y, x_new, k=5):
+    """Class of x_new = majority vote of its k nearest stored rows."""
+    # 1. distance from x_new to every stored point (Pythagoras, all at once)
+    d = np.sqrt(((X - x_new) ** 2).sum(axis=1))
+    # 2. the k smallest distances -> which rows are the neighbors
+    idx = np.argsort(d)[:k]
+    # 3. let them vote
+    labels, counts = np.unique(y[idx], return_counts=True)
+    return labels[np.argmax(counts)]
+
+def knn_average(X, y, x_new, k=5):
+    """Regression version: average instead of vote."""
+    d = np.sqrt(((X - x_new) ** 2).sum(axis=1))
+    return y[np.argsort(d)[:k]].mean()
+
+# usage: predict the class of one new point
+# knn_predict(X_train, y_train, x_new=[1200., 14.], k=5)</code></pre>
+
+      <p>Two lines of math, one line of voting — which is why this algorithm is usually the
+        first thing people implement from scratch to check they understand the whole
+        train-predict loop.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 9 -->
+    <section id="cheatsheet">
+      <h2>9. Cheat sheet</h2>
+
+      <div class="cheatsheet">
+        <div class="cs-item">
+          <h4>Distance</h4>
+          <p>$$\sqrt{(p_1-q_1)^2 + \cdots + (p_n-q_n)^2}$$</p>
+          <p>Straight-line distance; KNN only uses the <em>ranking</em>.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Classification rule</h4>
+          <p>$$\hat{y} = \text{majority of } k \text{ neighbors}$$</p>
+          <p>Odd k avoids tied votes.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Regression rule</h4>
+          <p>$$\hat{y} = \tfrac{1}{k}\sum_{i=1}^{k} y_i$$</p>
+          <p>Same neighbors, averaged instead of voted.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Choosing k</h4>
+          <p>Small k = jagged (overfit) · large k = bland (underfit).</p>
+          <p>Start 3–15; let <em>test</em> accuracy decide.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Scaling</h4>
+          <p>$$x' = \tfrac{x - \min}{\max - \min}$$</p>
+          <p>Scale first — or big-unit features bully the vote.</p>
+        </div>
+        <div class="cs-item">
+          <h4>The lazy learner</h4>
+          <p>Training = copy the data (instant).</p>
+          <p>Prediction = scan all of it (the bill arrives later).</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <p class="callout-title">The one-sentence version</p>
+        <p>KNN remembers everything, measures distance, and lets the k closest memories
+          vote — the whole art is picking k, trusting your distances, and keeping the
+          dimensions few.</p>
+      </div>
+    </section>
+
+    <footer style="margin-top:64px;font-size:13.5px;color:var(--muted);">
+      <p><a href="../index.html">← All topics</a> · Previous: <a href="logistic-regression.html">Logistic Regression</a> · Next: <a href="naive-bayes.html">Naive Bayes →</a></p>
+      <p>ML Notes — <span data-year>2026</span></p>
+    </footer>
+  </main>
+
+  <!-- ======================= page TOC ======================= -->
+  <details class="page-toc" id="page-toc" open>
+    <summary>On this page</summary>
+    <p class="toc-title">On this page</p>
+    <nav aria-label="Table of contents">
+      <ol>
+        <li><a href="#big-idea">1. Just ask the neighbors</a></li>
+        <li><a href="#distance">2. Measuring distance</a></li>
+        <li><a href="#choosing-k">3. Choosing k</a></li>
+        <li><a href="#vote-or-average">4. Vote or average</a></li>
+        <li><a href="#scaling">5. Why scaling matters</a></li>
+        <li><a href="#dimensions">6. Curse of dimensions</a></li>
+        <li><a href="#evaluation">7. Does it work?</a></li>
+        <li><a href="#code">8. NumPy from scratch</a></li>
+        <li><a href="#cheatsheet">9. Cheat sheet</a></li>
+      </ol>
+    </nav>
+  </details>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+</body>
+</html>

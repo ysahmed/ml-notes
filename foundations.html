@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foundations — ML Notes</title>
+<meta name="description" content="The vocabulary every ML lesson assumes: Y = f(X) + ε, prediction vs inference, reducible vs irreducible error, overfitting, the bias–variance trade-off, and the Bayes classifier every algorithm chases.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="assets/js/plots.js"></script>
+<script defer src="assets/js/demos/fn-noise.js"></script>
+<script defer src="assets/js/demos/fn-flex.js"></script>
+<script defer src="assets/js/demos/fn-bayes.js"></script>
+<script defer src="assets/js/common.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="icon-btn" data-sidebar-toggle aria-label="Open navigation menu" aria-controls="sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <span class="topbar-title">Foundations</span>
+</header>
+
+<div class="app">
+
+  <!-- ======================= sidebar ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">∑</span>
+      <a href="index.html">ML Notes</a>
+    </div>
+
+    <nav class="side-nav" aria-label="Site navigation">
+      <p class="side-label">Browse</p>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+      </ul>
+
+      <p class="side-label">Foundations</p>
+      <ul>
+        <li>
+          <a href="foundations.html" aria-current="page">
+            <span>Foundations</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+      </ul>
+
+      <p class="side-label">Topics</p>
+      <ul>
+        <li>
+          <a href="topics/linear-regression.html">
+            <span>Linear Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="topics/logistic-regression.html">
+            <span>Logistic Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="topics/k-nearest-neighbors.html">
+            <span>K-Nearest Neighbors</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="topics/naive-bayes.html">
+            <span>Naive Bayes</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Decision Trees</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Neural Networks</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="side-foot">
+      <button class="theme-btn" data-theme-toggle type="button">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span class="theme-label">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================= main ======================= -->
+  <main id="main">
+
+    <div class="page-head">
+      <p class="eyebrow">Foundations · Read this first</p>
+      <h1>Foundations</h1>
+      <p class="lede">The vocabulary every topic on this site quietly assumes — what a model
+        is really doing, why it's always wrong (and by exactly how much), and the gold
+        standard every algorithm chases. Thirteen ideas, three demos, zero math
+        prerequisites.</p>
+    </div>
+
+    <!-- ---------------------------------------------------- 1 -->
+    <section id="world">
+      <h2>1. The model of the world: Y = f(X) + ε</h2>
+
+      <p>Before any algorithm, every ML course makes one assumption about how the world
+        works. It fits on one line, and everything else is commentary:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">The sentence the whole field is built on</p>
+        $$Y = f(X) + \varepsilon$$
+        <p style="font-size:14.5px;color:var(--muted);"><strong>Y</strong> — the outcome
+          you care about (house price, diagnosis, will they click). <strong>X</strong> —
+          the inputs you get to see (size, symptoms, the headline).
+          <strong>f</strong> — the <em>true relationship</em> that turns inputs into the
+          outcome: powerful, fixed, and <strong>you never get to see it</strong>.
+          <strong>ε</strong> — the <em>noise</em>: measurement error, luck, the customer's
+          mood, the variables nobody logged. The part nobody controls.</p>
+      </div>
+
+      <p>The punchline is in that third item: <strong>we only ever see Y, never f.</strong>
+        Every dataset is f's output with ε splattered on top. A model is therefore always
+        a <em>guess</em> at f — a hypothesis about the machinery behind the numbers. The
+        whole game is making that guess good on data you haven't seen yet.</p>
+
+      <figure class="demo" id="demo-fn-noise">
+        <div class="demo-body"><canvas id="cv-fn-noise"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="fn-sigma">noise σ</label>
+            <input type="range" id="fn-sigma" min="0" max="150" value="60">
+          </span>
+          <span class="ro" id="fn-noise-floor">…</span>
+          <span class="ro" id="fn-noise-miss">…</span>
+          <span class="ro" id="fn-noise-total">…</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> the dark curve is the true
+          <em>f</em> — the thing we'd love to know. The blue dots are what we actually
+          collect: each one nudged off the curve by ε. The red dashed line is the simplest
+          possible guess, a straight line. Drag the <strong>noise</strong> slider to zero:
+          the dots snap onto the truth — but the straight line <em>still misses the
+          curve</em>. Two different failures, and section 3 gives them names.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 2 -->
+    <section id="predict-vs-infer">
+      <h2>2. Two jobs: prediction vs inference</h2>
+
+      <p>Why build a model at all? Almost always one of two very different reasons — and
+        which one you're after changes everything you'll care about later:</p>
+
+      <table>
+        <thead>
+          <tr><th></th><th>Prediction</th><th>Inference</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>The question</th>
+            <td>"What will Y be?"</td>
+            <td>"Which X's matter, and how much?"</td>
+          </tr>
+          <tr>
+            <th>What you want</th>
+            <td>A good guess — the model can be a black box</td>
+            <td>Understanding — the model must explain itself</td>
+          </tr>
+          <tr>
+            <th>The analogy</th>
+            <td>A GPS: it just knows the ETA</td>
+            <td>A mechanic: tells you <em>why</em> the car sputters</td>
+          </tr>
+          <tr>
+            <th>On this site</th>
+            <td>almost every topic ends in a score</td>
+            <td>Linear &amp; Logistic regression wear their coefficients openly</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Real projects often want both: a hospital wants to <em>predict</em> who's at risk
+        <strong>and</strong> <em>understand</em> which factors drive that risk (because
+        treatment decisions must be justified). Hold on to this split — it comes back hard
+        in section 8 when we ask whether a model should be a formula or a blob.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 3 -->
+    <section id="two-errors">
+      <h2>3. Reducible vs irreducible error</h2>
+
+      <p>Your model will be wrong. But it's wrong in two completely different ways, and
+        telling them apart is the single most useful habit in ML:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Two kinds of wrong</p>
+        $$\text{total error} = \underbrace{\text{reducible}}_{\text{your model's fault}} \;+\; \underbrace{\text{irreducible}}_{\text{the world's fault}}$$
+        <p style="font-size:14.5px;color:var(--muted);"><strong>Reducible</strong> — the
+          gap between your guess and the true <em>f</em>. Fixable: more data, better
+          features, the right amount of flexibility. <strong>Irreducible</strong> — ε
+          itself. <em>No</em> model can beat it, because the information simply isn't
+          there. Even a perfect oracle predicting f exactly would still be off by
+          ε.</p>
+      </div>
+
+      <p>The demo above is exactly this: the <em>legs</em> (point → curve) are the
+        irreducible part — the readout literally shows it as <strong>σ</strong>, the noise
+        size. The gap between the red line and the curve is the reducible part. Push σ to
+        zero and only the reducible gap remains; keep the straight line on a curvy world
+        and no amount of noise reduction will save it.</p>
+
+      <div class="callout">
+        <p class="callout-title">Why this matters for judging models</p>
+        <p>Two models can never be compared on absolute error alone — they both face the
+          same floor. What you compare is the part <em>above</em> the floor: how much
+          reducible error each one leaves on the table. And when a colleague promises
+          "zero error," this is the concept that says they're selling something.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 4 -->
+    <section id="setups">
+      <h2>4. Three ways to learn: supervised, unsupervised, semi-supervised</h2>
+
+      <p>Everything above assumes you have a dataset. What's <em>in</em> it sorts all of ML
+        into three families:</p>
+
+      <table>
+        <thead>
+          <tr><th>Setup</th><th>What you're given</th><th>The question</th><th>Examples</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Supervised</strong></td>
+            <td>Inputs X <em>and</em> the answers Y (labels)</td>
+            <td>"Learn the mapping from X to Y"</td>
+            <td>every topic on this site (01–04)</td>
+          </tr>
+          <tr>
+            <td><strong>Unsupervised</strong></td>
+            <td>Inputs X only — nobody wrote the answers</td>
+            <td>"Find structure that's already in there"</td>
+            <td>clustering, dimensionality reduction <em>(coming later)</em></td>
+          </tr>
+          <tr>
+            <td><strong>Semi-supervised</strong></td>
+            <td>A few labels + a mountain of unlabeled data</td>
+            <td>"Let the unlabeled pile help the labeled one"</td>
+            <td>label a few photos, let the model learn from the rest</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The words are dumber than they sound: <em>supervised</em> = a teacher graded your
+        training data. No teacher = unsupervised. Some students have answer keys, most
+        don't = semi-supervised. Nearly everything you'll meet first is supervised,
+        because it's the setup where you can actually measure whether you're winning.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 5 -->
+    <section id="reg-vs-class">
+      <h2>5. Regression vs classification: the shape of the answer</h2>
+
+      <p>In supervised learning, your target Y decides which of two games you're playing —
+        and the game decides how you're graded:</p>
+
+      <table>
+        <thead>
+          <tr><th></th><th>Regression</th><th>Classification</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Y is</th><td>a number (price, temperature, demand)</td><td>a category (spam/ham, benign/malignant)</td></tr>
+          <tr><th>You output</th><td>a value</td><td>a label (often with a probability)</td></tr>
+          <tr><th>You're graded by</th><td>MSE — how far off were you? (§6)</td><td>error rate — how often were you wrong? (§9)</td></tr>
+          <tr><th>On this site</th><td><a href="topics/linear-regression.html">Linear Regression</a></td><td><a href="topics/logistic-regression.html">Logistic</a>, <a href="topics/k-nearest-neighbors.html">KNN</a>, <a href="topics/naive-bayes.html">Naive Bayes</a></td></tr>
+        </tbody>
+      </table>
+
+      <p>One boundary case to defuse now: predicting "probability of spam" <em>sounds</em>
+        like regression (a number between 0 and 1), but it's a classification model —
+        the number is just the model's confidence before you pick a side.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 6 -->
+    <section id="train-test">
+      <h2>6. Training vs test error — and the trap called overfitting</h2>
+
+      <p>For numbers (regression), the standard report card is the
+        <strong>mean squared error</strong> — average miss, with big misses punished
+        extra:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Mean squared error</p>
+        $$\text{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$$
+        <p style="font-size:14.5px;color:var(--muted);">For each point: take the miss
+          (actual − predicted), square it (so a huge miss counts much more than a small
+          one), average across all points. Units are "Y squared" — a 20-point miss is 4×
+          worse than a 10-point miss, not 2×.</p>
+      </div>
+
+      <p>Here's the trap. If you grade your model on <strong>the same data it studied</strong>
+        (the <em>training</em> set), it can cheat — and it will. Give it enough flexibility
+        and it memorizes every point, including the noise: training error slides toward
+        zero while the model gets <em>worse</em> at its actual job. That's
+        <strong>overfitting</strong> — the straight-A student who has never solved a
+        problem he hasn't seen.</p>
+
+      <p>The fix is old-fashioned: hold back some data (the <strong>test set</strong>) that
+        the model never studies, and grade it there. Test error is the honest estimate of
+        "what happens on the next real customer."</p>
+
+      <figure class="demo" id="demo-fn-flex">
+        <div class="demo-body grid2">
+          <div><canvas id="cv-flex-fit"></canvas></div>
+          <div><canvas id="cv-flex-mse"></canvas></div>
+        </div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="fn-degree">flexibility (degree)</label>
+            <input type="range" id="fn-degree" min="1" max="15" value="1">
+          </span>
+          <span class="ro" id="fn-flex-train">…</span>
+          <span class="ro" id="fn-flex-test">…</span>
+          <span class="ro" id="fn-flex-best">…</span>
+          <span class="ro" id="fn-flex-zone">…</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> left panel — your fit (red) chasing
+          training points (blue); the gray dashed truth is what you'd see in a perfect
+          world. Right panel — both errors across all 15 flexibilities. Watch the
+          <strong>blue train line fall forever</strong> (more flexibility never hurts on
+          your own homework) while the <strong>red test line falls, bottoms out, then
+          explodes</strong>. The bottom of that U is the sweet spot; drag past it and the
+          verdict flips to <em>overfit</em>.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 7 -->
+    <section id="bias-variance">
+      <h2>7. The bias–variance trade-off</h2>
+
+      <p>Why does the test error have a U shape at all? Because the reducible error in
+        §3 has two ingredients, and they move in <em>opposite</em> directions when you add
+        flexibility:</p>
+
+      <table>
+        <thead>
+          <tr><th></th><th>Bias</th><th>Variance</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Plain English</th>
+            <td><strong>Stubborn wrongness</strong> — the model's assumption is too simple
+              and misses the pattern <em>everywhere</em></td>
+            <td><strong>Twitchiness</strong> — the model changes a lot if you retrain it
+              on a different sample of the same data</td>
+          </tr>
+          <tr>
+            <th>Feels like</th>
+            <td>a too-dumb approximation, an X drawn through a curve</td>
+            <td>a wiggly line that would look different tomorrow</td>
+          </tr>
+          <tr>
+            <th>Reduced by</th>
+            <td>more flexibility, better features</td>
+            <td>more data, less flexibility</td>
+          </tr>
+          <tr>
+            <th>On the U-curve</th>
+            <td>the left side (degree 1–2)</td>
+            <td>the right side (degree 12+)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="keybox">
+        <p class="keybox-title">Where test error comes from</p>
+        $$\text{test error} \approx \text{bias}^2 + \text{variance} + \text{irreducible noise}$$
+        <p style="font-size:14.5px;color:var(--muted);">The noise term is §3's floor and
+          never moves. The other two are a seesaw: crank up flexibility and bias drops
+          while variance climbs. The art is parking at the bottom of the U — and the
+          slider in §6 lets you feel the seesaw directly.</p>
+      </div>
+
+      <p>Two honest notes: (1) you can't see either term directly — you infer them from
+        train-vs-test behavior (left of the U: <em>both</em> errors high; right: train low,
+        test high). (2) More data shrinks variance but never touches bias — which is why a
+        bigger dataset can't save a model that's fundamentally the wrong shape.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 8 -->
+    <section id="param-vs-non">
+      <h2>8. Parametric vs non-parametric · flexibility vs interpretability</h2>
+
+      <p>Every algorithm picks a side on a deep philosophical question: <em>do you decide
+        the model's shape up front, or let the data draw it?</em></p>
+
+      <table>
+        <thead>
+          <tr><th></th><th>Parametric</th><th>Non-parametric</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>The move</th><td>Assume a shape (a line, a curve formula), then fit its <strong>few parameters</strong></td><td>Assume <strong>no shape</strong> — keep the data and bend around it</td></tr>
+          <tr><th>Trains</th><td>fast — you're estimating a handful of numbers</td><td>slow-ish — the dataset <em>is</em> part of the model</td></tr>
+          <tr><th>Explains</th><td>beautifully — "each extra room adds $12k"</td><td>badly — "the 3rd-nearest houses said so"</td></tr>
+          <tr><th>Risk</th><td>high bias if the assumed shape is wrong (§7)</td><td>high variance with little data (§7)</td></tr>
+          <tr><th>On this site</th><td><a href="topics/linear-regression.html">Linear</a>, <a href="topics/logistic-regression.html">Logistic</a></td><td><a href="topics/k-nearest-neighbors.html">KNN</a></td></tr>
+        </tbody>
+      </table>
+
+      <p>"Non-parametric" is a misleading name — they use <em>tons</em> of effective
+        parameters (every data point is one). It just means "no parameters you agreed on
+        before seeing the data."</p>
+
+      <div class="callout">
+        <p class="callout-title">Flexibility vs interpretability — the practical trade-off</p>
+        <p>These two properties pull against each other on every real project. Slide
+          toward <strong>interpretability</strong> when someone must approve or act on the
+          reasons (medicine, credit, science — and your own intuition during exploration).
+          Slide toward <strong>flexibility</strong> when only the prediction matters and
+          the data is rich enough to fill a complex model without tripping into variance.
+          It's §2 (inference vs prediction) showing up again as a hardware choice.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 9 -->
+    <section id="bayes-gold">
+      <h2>9. The gold standard: error rate, the Bayes classifier, and the floor</h2>
+
+      <p>For categories (§5), the report card isn't MSE — it's brutally simple:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Classification error rate</p>
+        $$\text{error rate} = \frac{\#\text{ wrong predictions}}{\#\text{ all predictions}}$$
+        <p style="font-size:14.5px;color:var(--muted);">6 wrong out of 100 customers →
+          6%. Nothing else to it. (Its twin, <em>accuracy</em>, is just 100% − this —
+          see <a href="topics/logistic-regression.html#evaluation">§7 of Logistic
+          Regression</a> for when one number isn't enough.)</p>
+      </div>
+
+      <p>Now the thought experiment the whole field is measured against. Imagine a rule
+        that sees the <strong>true probabilities</strong> — the real P(Y | X) straight from
+        the world — and always bets on the more likely class. Call it the
+        <strong>Bayes classifier</strong>. It's optimal: no other rule beats it on average.
+        But even <em>it</em> loses sometimes — the classes genuinely overlap, and in the
+        overlap region someone must lose. How often the perfect rule is wrong is the
+        <strong>Bayes error rate</strong> — the classification version of irreducible error
+        from §3.</p>
+
+      <figure class="demo" id="demo-fn-bayes">
+        <div class="demo-body"><canvas id="cv-fn-bayes"></canvas></div>
+        <div class="demo-controls">
+          <button class="btn" data-rule="bayes" type="button" aria-pressed="true">Bayes rule</button>
+          <button class="btn" data-rule="vsplit" type="button" aria-pressed="false">threshold on x</button>
+          <button class="btn" data-rule="knn" type="button" aria-pressed="false">1-NN</button>
+          <span class="ro" id="fn-bayes-err">…</span>
+          <span class="ro" id="fn-bayes-floor">…</span>
+          <span class="ro" id="fn-bayes-rule">…</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> two clouds, one unavoidable overlap
+          (the clouds blend in the middle — that blending <em>is</em> ε). The
+          <strong>Bayes rule</strong> cuts with the perfect line and lands near the floor.
+          <strong>Threshold on x</strong> only looks at one feature — the error jumps,
+          every one of those mistakes is <em>reducible</em>. <strong>1-NN</strong> uses no
+          formula at all yet almost matches the oracle. Watch the two readouts: your error
+          vs the floor you can never quite reach.</figcaption>
+      </figure>
+
+      <div class="callout">
+        <p class="callout-title">"Bayes classifier" ≠ "Naive Bayes"</p>
+        <p>The Bayes classifier is an <em>ideal</em> — it needs the true probabilities,
+          which nobody hands you. <a href="topics/naive-bayes.html">Naive Bayes</a> is a
+          practical, deliberately-flawed <em>estimate</em> of that ideal (assume clues are
+          independent, count, multiply). And <a href="topics/k-nearest-neighbors.html">KNN</a>
+          chases the same oracle from the other direction: "the local majority probably
+          matches the true probability." Every classifier on this site is a way of
+          sneaking up on a number no one gets to see.</p>
+      </div>
+
+      <p>Which sets the honest goalpost for the entire field: <strong>not zero error</strong>
+        — the Bayes error rate is zero's final boss, and if your model reports beating it,
+        check whether it peeked at the answers. The only race that matters is who gets
+        <em>closest to the floor</em>.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 10 -->
+    <section id="cheatsheet">
+      <h2>10. Cheat sheet</h2>
+
+      <div class="cheatsheet">
+        <div class="cs-item">
+          <h4>Y = f(X) + ε</h4>
+          <p>Outcomes come from a true relationship <em>f</em> you never see, plus noise.
+          </p>
+          <p>You only ever observe Y — a model is a guess at f.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Prediction vs inference</h4>
+          <p>Guessing the outcome vs understanding which inputs drive it.</p>
+          <p>Determines black-box vs interpretable choices (§8).</p>
+        </div>
+        <div class="cs-item">
+          <h4>Reducible vs irreducible</h4>
+          <p>Your model's fault (fixable) + the world's fault (ε — untouchable).</p>
+          <p>Models compete only on the reducible part.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Supervised · unsupervised · semi</h4>
+          <p>Answers given / no answers / few answers.</p>
+          <p>All four topics so far are supervised.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Regression vs classification</h4>
+          <p>Y a number → regression; Y a category → classification.</p>
+          <p>Graded by MSE vs error rate.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Train vs test</h4>
+          <p>Training error studies with the answers; test error takes the exam cold.</p>
+          <p>Only the test set tells the truth.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Overfitting</h4>
+          <p>Memorizes the training data — including its noise.</p>
+          <p>Train ↓ forever while test ↓ then ↑.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Bias–variance</h4>
+          <p>$$\text{test error} \approx \text{bias}^2 + \text{variance} + \text{noise}$$</p>
+          <p>Stubborn wrongness vs twitchiness — a seesaw; park at the bottom of the U.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Parametric vs non-parametric</h4>
+          <p>Assume a shape and fit it vs let the data draw the shape.</p>
+          <p>Linear (formula) ↔ KNN (no formula).</p>
+        </div>
+        <div class="cs-item">
+          <h4>Flexibility vs interpretability</h4>
+          <p>Wiggly models predict well but explain badly — and vice versa.</p>
+          <p>Match it to §2: prediction job or inference job?</p>
+        </div>
+        <div class="cs-item">
+          <h4>Error rate</h4>
+          <p>$$\frac{\#\text{wrong}}{\#\text{all}}$$</p>
+          <p>Classification's report card; accuracy is its mirror.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Bayes classifier &amp; Bayes error</h4>
+          <p>The optimal rule (always bet on the likelier class) and how often even it
+            loses.</p>
+          <p>The floor every classifier races — irreducible error for categories.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <p class="callout-title">The one-sentence version</p>
+        <p>Every algorithm on this site is one attempt to guess the unseen f(X) without
+          memorizing ε — judged on data it never studied, chasing a floor (the Bayes
+          error) that nobody is allowed to cross.</p>
+      </div>
+    </section>
+
+    <footer style="margin-top:64px;font-size:13.5px;color:var(--muted);">
+      <p><a href="index.html">← Home</a> · Next: <a href="topics/linear-regression.html">Linear Regression</a></p>
+      <p>ML Notes — <span data-year>2026</span></p>
+    </footer>
+  </main>
+
+  <!-- ======================= page TOC ======================= -->
+  <details class="page-toc" id="page-toc" open>
+    <summary>On this page</summary>
+    <p class="toc-title">On this page</p>
+    <nav aria-label="Table of contents">
+      <ol>
+        <li><a href="#world">1. Y = f(X) + ε</a></li>
+        <li><a href="#predict-vs-infer">2. Prediction vs inference</a></li>
+        <li><a href="#two-errors">3. Reducible vs irreducible</a></li>
+        <li><a href="#setups">4. Three ways to learn</a></li>
+        <li><a href="#reg-vs-class">5. Regression vs classification</a></li>
+        <li><a href="#train-test">6. Train vs test MSE</a></li>
+        <li><a href="#bias-variance">7. Bias–variance</a></li>
+        <li><a href="#param-vs-non">8. Parametric vs non-parametric</a></li>
+        <li><a href="#bayes-gold">9. The Bayes gold standard</a></li>
+        <li><a href="#cheatsheet">10. Cheat sheet</a></li>
+      </ol>
+    </nav>
+  </details>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+</body>
+</html>

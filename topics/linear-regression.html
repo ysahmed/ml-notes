@@ -42,6 +42,16 @@
         <li><a href="../index.html">Home</a></li>
       </ul>
 
+      <p class="side-label">Foundations</p>
+      <ul>
+        <li>
+          <a href="../foundations.html">
+            <span>Foundations</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+      </ul>
+
       <p class="side-label">Topics</p>
       <ul>
         <li>
@@ -57,9 +67,15 @@
           </a>
         </li>
         <li>
-          <a class="soon" aria-disabled="true" tabindex="-1">
+          <a href="k-nearest-neighbors.html">
             <span>K-Nearest Neighbors</span>
-            <span class="badge">soon</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="naive-bayes.html">
+            <span>Naive Bayes</span>
+            <span class="badge done">done</span>
           </a>
         </li>
         <li>
@@ -399,7 +415,10 @@
         lands somewhere in the middle, mediocre at everything.</p>
 
       <p>More data won't help either — feeding a straight line a million curved points just
-        gives a very confident wrong line. The fix is a <strong>richer model</strong>.</p>
+        gives a very confident wrong line. The fix is a <strong>richer model</strong>.
+        This is the left half of the <a href="../foundations.html#bias-variance">bias–variance
+        trade-off</a> from Foundations: too little flexibility is just as wrong as too
+        much.</p>
 
       <figure class="demo" id="demo-curve">
         <div class="demo-body"><canvas id="cv-curve"></canvas></div>

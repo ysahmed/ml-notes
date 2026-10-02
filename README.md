@@ -19,16 +19,23 @@ rendering); everything else works offline.
 |---|-------|--------|
 | 01 | [Linear Regression](topics/linear-regression.html) | done |
 | 02 | [Logistic Regression](topics/logistic-regression.html) | done |
-| 03 | K-Nearest Neighbors | soon |
-| 04 | Decision Trees | soon |
-| 05 | Neural Networks | soon |
+| 03 | [K-Nearest Neighbors](topics/k-nearest-neighbors.html) | done |
+| 04 | [Naive Bayes](topics/naive-bayes.html) | done |
+| 05 | Decision Trees | soon |
+| 06 | Neural Networks | soon |
 
-Start at 01 — each lesson assumes you've read the ones before it.
+Start with [Foundations](foundations.html) — the shared vocabulary — then work
+through 01 upward; each lesson assumes you've read the ones before it.
+
+**Organizing rule:** concepts shared by every algorithm (error, overfitting,
+the Bayes classifier, …) live in `foundations.html` under the *Foundations*
+sidebar group; anything specific to one algorithm lives in that topic's page.
 
 ## Structure
 
 ```
 index.html                 hub with topic cards
+foundations.html           shared fundamentals (sidebar group: Foundations)
 serve.py                   local dev server (stdlib only)
 topics/                    one HTML file per lesson
 assets/css/style.css       shared theme (light/dark), sidebar, components

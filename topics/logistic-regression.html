@@ -44,6 +44,16 @@
         <li><a href="../index.html">Home</a></li>
       </ul>
 
+      <p class="side-label">Foundations</p>
+      <ul>
+        <li>
+          <a href="../foundations.html">
+            <span>Foundations</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+      </ul>
+
       <p class="side-label">Topics</p>
       <ul>
         <li>
@@ -59,9 +69,15 @@
           </a>
         </li>
         <li>
-          <a class="soon" aria-disabled="true" tabindex="-1">
+          <a href="k-nearest-neighbors.html">
             <span>K-Nearest Neighbors</span>
-            <span class="badge">soon</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="naive-bayes.html">
+            <span>Naive Bayes</span>
+            <span class="badge done">done</span>
           </a>
         </li>
         <li>
@@ -468,10 +484,13 @@
     <section id="evaluation">
       <h2>7. Did it actually work? Reading the results</h2>
 
-      <p>Accuracy ("what fraction did we get right?") is misleading as soon as classes are
-        unbalanced. If only 5% of emails are spam, a model that <strong>always says
-        "not spam"</strong> scores 95% while being useless. The
-        <strong>confusion matrix</strong> shows who got confused with whom:</p>
+      <p>The simplest scorecard of all — wrong ÷ total — is the <strong>classification
+        error rate</strong> from <a href="../foundations.html#bayes-gold">Foundations
+        §9</a>, along with the floor (<em>Bayes error</em>) that no model may cross. Its
+        twin, accuracy, is misleading as soon as classes are unbalanced: if only 5% of
+        emails are spam, a model that <strong>always says "not spam"</strong> scores 95%
+        while being useless. So start with the <strong>confusion matrix</strong> — who
+        got confused with whom:</p>
 
       <table>
         <thead>
@@ -483,15 +502,33 @@
         </tbody>
       </table>
 
-      <p>From those four numbers, three useful questions:</p>
+      <p>From those four numbers, five useful questions:</p>
       <ul>
-        <li><strong>Precision</strong> — "when it raises an alarm, how often is it right?"</li>
+        <li><strong>Accuracy</strong> — "over <em>all</em> predictions, what fraction is
+          right?" In this example: (48 + 44) / 100 = <strong>92%</strong>. Balanced classes?
+          Accuracy is the perfectly fine go-to number — it's exactly the number whose danger
+          the opening paragraph warned about.</li>
+      </ul>
+      <p style="text-align:center;">$$\text{accuracy} = \frac{TP + TN}{N}$$</p>
+      <ul>
+        <li><strong>Precision</strong> — "when it raises an alarm, how often is it right?"
+          Here: 48 / 54 ≈ <strong>89%</strong>.</li>
       </ul>
       <p style="text-align:center;">$$\text{precision} = \frac{TP}{TP + FP}$$</p>
       <ul>
-        <li><strong>Recall</strong> — "of all the real cases, how many did we catch?"</li>
+        <li><strong>Recall</strong> — "of all the real cases, how many did we catch?"
+          Here: 48 / 50 = <strong>96%</strong>.</li>
       </ul>
       <p style="text-align:center;">$$\text{recall} = \frac{TP}{TP + FN}$$</p>
+      <ul>
+        <li><strong>F1 score</strong> — one number that respects both, folded together with
+          the <em>harmonic</em> mean (the kind that punishes lopsidedness). When precision
+          and recall are both high, F1 sits near them anyway (here ≈ <strong>92%</strong>).
+          The difference shows when they split: 99% precision but 50% recall averages out to
+          a comfortable 74% — F1 grades it <strong>67%</strong>, because a model that only
+          flags the obvious cases hasn't really caught anything.</li>
+      </ul>
+      <p style="text-align:center;">$$F_1 = 2 \cdot \frac{\text{precision} \cdot \text{recall}}{\text{precision} + \text{recall}}$$</p>
       <ul>
         <li><strong>ROC curve / AUC</strong> — slide the 0.5 cutoff down toward 0 and you
           catch more (recall up) but cry wolf more (precision down). The ROC curve plots
@@ -499,12 +536,55 @@
           one number: 1.0 = perfect, 0.5 = coin flip.</li>
       </ul>
 
+      <p>So when do you reach for which? Every row is an answer to the same question:
+        <strong>who pays for each mistake?</strong></p>
+
+      <table>
+        <thead>
+          <tr><th>Situation</th><th>Report</th><th>Why, in one line</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Balanced classes, every mistake equally costly</td>
+            <td><strong>Accuracy</strong></td>
+            <td>The everyday default — nothing to hide.</td>
+          </tr>
+          <tr>
+            <td>False alarms are the disaster (deleting real email, blocking legit
+              transactions)</td>
+            <td><strong>Precision</strong></td>
+            <td>"When it raises an alarm, how often is it right?"</td>
+          </tr>
+          <tr>
+            <td>Missing a real case is the disaster (fraud, cancer, defects)</td>
+            <td><strong>Recall</strong></td>
+            <td>"Of all the real cases, how many did we catch?"</td>
+          </tr>
+          <tr>
+            <td>You need <strong>one number</strong> to compare models and both error types
+              matter</td>
+            <td><strong>F1</strong></td>
+            <td>Collapses if either side collapses — can't hide a lopsided model.</td>
+          </tr>
+          <tr>
+            <td>Heavy class imbalance (5% fraud) — accuracy looks great but lies</td>
+            <td><strong>AUC</strong></td>
+            <td>Grades every threshold at once, so one lucky 0.5 cutoff can't fake it.</td>
+          </tr>
+          <tr>
+            <td>You must tune <em>where</em> the cutoff sits (catch more vs. cry wolf)</td>
+            <td><strong>ROC curve</strong></td>
+            <td>Shows the full trade-off so you can pick the balance deliberately.</td>
+          </tr>
+        </tbody>
+      </table>
+
       <div class="callout">
         <p class="callout-title">Rule of thumb</p>
-        <p>Catching every fraud case matters more than a few false alarms? Optimize
-          <strong>recall</strong>. A spam filter that deletes real emails is worse than one
-          that lets spam through? Optimize <strong>precision</strong>. There's no single
-          "correct" number — decide what mistakes hurt most.</p>
+        <p>The table is a menu, not a law. Ask yourself <strong>"which mistake hurts
+          more?"</strong>, pick the number whose failure mode you can live with — and always
+          ship the <strong>confusion matrix</strong> next to your score, so nobody has to
+          guess what it's hiding.</p>
       </div>
     </section>
 
@@ -637,6 +717,13 @@ accuracy: 98%</code></pre>
           <p>$$\hat{p}_k = \frac{e^{z_k}}{\sum_c e^{z_c}}$$</p>
           <p>Softmax — same story, more heads.</p>
         </div>
+        <div class="cs-item">
+          <h4>Scores</h4>
+          <p>$$\text{acc}=\tfrac{TP+TN}{N},\;\; \text{prec}=\tfrac{TP}{TP+FP},\;\;
+             \text{rec}=\tfrac{TP}{TP+FN},\;\; F_1=\tfrac{2PR}{P+R}$$</p>
+          <p>One number never tells the whole story — pick the one where your mistakes
+            hurt.</p>
+        </div>
       </div>
 
       <div class="callout ok">
@@ -648,7 +735,7 @@ accuracy: 98%</code></pre>
     </section>
 
     <footer style="margin-top:64px;font-size:13.5px;color:var(--muted);">
-      <p><a href="../index.html">← All topics</a> · Previous: <a href="linear-regression.html">Linear Regression</a> · Next up: K-Nearest Neighbors (coming soon)</p>
+      <p><a href="../index.html">← All topics</a> · Previous: <a href="linear-regression.html">Linear Regression</a> · Next: <a href="k-nearest-neighbors.html">K-Nearest Neighbors →</a></p>
       <p>ML Notes — <span data-year>2026</span></p>
     </footer>
   </main>
