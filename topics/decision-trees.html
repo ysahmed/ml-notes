@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Trees — ML Notes</title>
+<meta name="description" content="An intuitive, visual introduction to decision trees: purity and the Gini index, greedy splitting, regression trees, pruning, and why one tree is never enough.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/css/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/js/plots.js"></script>
+<script defer src="../assets/js/demos/dt-split.js"></script>
+<script defer src="../assets/js/demos/dt-depth.js"></script>
+<script defer src="../assets/js/demos/dt-reg.js"></script>
+<script defer src="../assets/js/common.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="icon-btn" data-sidebar-toggle aria-label="Open navigation menu" aria-controls="sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <span class="topbar-title">Decision Trees</span>
+</header>
+
+<div class="app">
+
+  <!-- ======================= sidebar ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">∑</span>
+      <a href="../index.html">ML Notes</a>
+    </div>
+
+    <nav class="side-nav" aria-label="Site navigation">
+      <p class="side-label">Browse</p>
+      <ul>
+        <li><a href="../index.html">Home</a></li>
+      </ul>
+
+      <p class="side-label">Foundations</p>
+      <ul>
+        <li>
+          <a href="../foundations.html">
+            <span>Foundations</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+      </ul>
+
+      <p class="side-label">Topics</p>
+      <ul>
+        <li>
+          <a href="linear-regression.html">
+            <span>Linear Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="logistic-regression.html">
+            <span>Logistic Regression</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="k-nearest-neighbors.html">
+            <span>K-Nearest Neighbors</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="naive-bayes.html">
+            <span>Naive Bayes</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a href="decision-trees.html" aria-current="page">
+            <span>Decision Trees</span>
+            <span class="badge done">done</span>
+          </a>
+        </li>
+        <li>
+          <a class="soon" aria-disabled="true" tabindex="-1">
+            <span>Neural Networks</span>
+            <span class="badge">soon</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="side-foot">
+      <button class="theme-btn" data-theme-toggle type="button">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span class="theme-label">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================= main ======================= -->
+  <main id="main">
+
+    <div class="page-head">
+      <p class="eyebrow">Topic 05 · Trees</p>
+      <h1>Decision Trees</h1>
+      <p class="lede">The flowchart you'd draw yourself — except learned from data. A stack
+        of yes/no questions carves the world into boxes until each box can answer, and every
+        decision along the way is a sentence a human can read.</p>
+    </div>
+
+    <!-- ---------------------------------------------------- 1 -->
+    <section id="big-idea">
+      <h2>1. The big idea: twenty questions</h2>
+
+      <p>Every model so far handed you something you can't picture: a line's weights, a
+        probability formula, a neighbor's vote. A decision tree hands you something you
+        already know how to read — a <strong>flowchart</strong>, the same structure you use
+        yourself: "if the email says 'wire' <em>and</em> asks for money today → spam."</p>
+
+      <div class="keybox">
+        <p class="keybox-title">The whole algorithm</p>
+        <p>1. Start with <strong>all</strong> the data in one node (the root).
+          <strong>2. Ask the yes/no question that splits the data into two groups that are
+            each as pure as possible.</strong> 3. Repeat on each group — split, split,
+          split. 4. Stop when told to. The answer in each final node (leaf) = the
+          <strong>majority class</strong> or the <strong>average</strong> of whatever landed
+          there.</p>
+        <p style="font-size:14.5px;color:var(--muted);">"Training" is choosing the
+          questions — no gradient descent, no distance metric. Just repeated brute force:
+          <em>try every question, keep the one that separates best.</em></p>
+      </div>
+
+      <p>To predict, you drop a new row down the tree — answer left or right at each
+        junction — until it lands in a leaf. That's it. The learning all happened while
+        choosing the questions; running it is free.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 2 -->
+    <section id="purity">
+      <h2>2. What makes a split "good"? Purity</h2>
+
+      <p>Step 2 needs a ruler: how <em>mixed</em> is a node? The standard ruler is the
+        <strong>Gini index</strong> — zero for a perfectly pure node, higher for a mess:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Gini index — how muddied is this node?</p>
+        $$\text{Gini} = 1 - \sum_{m} \hat{p}_m^2$$
+        <p style="font-size:14.5px;color:var(--muted);">$\hat{p}_m$ = the fraction of the
+          node that belongs to class <em>m</em>. All one class → 1 − 1² = <strong>0</strong>
+          (pure). Dead-even two classes → 1 − 0.5² − 0.5² = <strong>0.5</strong> (maximum
+          muddle).</p>
+      </div>
+
+      <p>A quick taste: a node with <strong>7 blue, 3 red</strong> gives
+        1 − (0.7² + 0.3²) = <strong>0.42</strong>. Split it into 7-blue and 3-red, and both
+        children score 0 — the split destroyed 0.42 of muddle. The algorithm's entire
+        ambition: find the question that drops the <em>average</em> Gini of the children as
+        far as possible (weighted by how many points land in each side).</p>
+
+      <p>There's a rival ruler — <strong>entropy</strong>, from information theory:</p>
+
+      <div class="keybox">
+        <p class="keybox-title">Entropy — same job, different curve</p>
+        $$\text{entropy} = -\sum_{m} \hat{p}_m \log_2 \hat{p}_m$$
+        <p style="font-size:14.5px;color:var(--muted);">Zero for pure nodes, 1.0 for a
+          balanced two-class node. Different numbers, same rankings: trees built with Gini
+          and trees built with entropy almost always end up identical.</p>
+      </div>
+
+      <figure class="demo" id="demo-dt-split">
+        <div class="demo-body"><canvas id="cv-dt-split"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="dt-split-pos">split position</label>
+            <input type="range" id="dt-split-pos" min="5" max="95" value="50">
+          </span>
+          <span class="ro" id="dt-split-left">…</span>
+          <span class="ro" id="dt-split-right">…</span>
+          <span class="ro" id="dt-split-weighted">…</span>
+          <button class="btn" id="dt-split-best" type="button">jump to best split</button>
+        </div>
+        <figcaption><strong>Play with it:</strong> the bars are your two groups — width
+          shows how many dots landed there, the colors show the mix. Drag the split and
+          watch the weighted Gini; it bottoms out at one spot, then rises again. The dashed
+          line is the winner: that's what "try every threshold, keep the best" finds, done
+          once per node, on every feature, all the way down.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 3 -->
+    <section id="growing">
+      <h2>3. Growing the tree: split, split, split</h2>
+
+      <p>After the first question, each side gets its <em>own</em> best question, ignoring
+        the other side. Recursion does the rest — and because every question is
+        "feature &lt; threshold?", the tree's map of the world is always drawn in
+        <strong>axis-aligned rectangles</strong>: cut horizontally, cut vertically, never
+        diagonally.</p>
+
+      <figure class="demo" id="demo-dt-depth">
+        <div class="demo-body"><canvas id="cv-dt-depth"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="dt-depth">max depth</label>
+            <input type="range" id="dt-depth" min="1" max="8" value="3">
+          </span>
+          <span class="ro" id="dt-depth-d">…</span>
+          <span class="ro" id="dt-depth-leaves">…</span>
+          <span class="ro" id="dt-depth-train">…</span>
+          <span class="ro" id="dt-depth-test">…</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> depth 1 is a <em>stump</em> — one
+          question, one cut, hopelessly simple. Deepen and the boxes chase the two clouds
+          into a staircase (notice there are no diagonal edges — the tree approximates the
+          slant with steps). Keep pushing: <strong>test accuracy peaks early and then
+          stalls, while train accuracy keeps climbing</strong> — the extra leaf boxes are
+          wrapping individual noise points, and the gap that opens up is overfitting, live
+          (<a href="../foundations.html#bias-variance">Foundations §7</a>).</figcaption>
+      </figure>
+
+      <p>Watch the <strong>leaf boxes</strong> counter while you drag: it's the model's
+        size. Two boxes = one question and a shrug; two dozen boxes = a hand-carved map of
+        every noise pocket in the training set.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 4 -->
+    <section id="regression-tree">
+      <h2>4. Regression trees: predict the mean</h2>
+
+      <p>Nothing in the machinery demands categories. Swap the two endings and the same
+        tree answers numbers:</p>
+
+      <table>
+        <thead>
+          <tr><th></th><th>Classification tree</th><th>Regression tree</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Split criterion</th><td>drop Gini (or entropy)</td><td>drop squared error (RSS)</td></tr>
+          <tr><th>Leaf answers with</th><td>majority class (a vote)</td><td><strong>the mean</strong> of everything in the leaf</td></tr>
+          <tr><th>Scored by</th><td>error rate</td><td>MSE</td></tr>
+        </tbody>
+      </table>
+
+      <p>A regression tree therefore always predicts a number it has
+        <em>already seen</em> — the average of a leaf it carved out of the training data.
+        Which also means it can never invent a new value: every prediction is some leaf's
+        mean, drawn as a step:</p>
+
+      <figure class="demo" id="demo-dt-reg">
+        <div class="demo-body"><canvas id="cv-dt-reg"></canvas></div>
+        <div class="demo-controls">
+          <span class="ctrl">
+            <label for="dt-leaves">max leaves</label>
+            <input type="range" id="dt-leaves" min="2" max="14" value="6">
+          </span>
+          <span class="ro" id="dt-reg-leaves">…</span>
+          <span class="ro" id="dt-reg-train">…</span>
+          <span class="ro" id="dt-reg-test">…</span>
+          <span class="ro" id="dt-reg-best">…</span>
+        </div>
+        <figcaption><strong>Play with it:</strong> the red staircase is the tree's answer —
+          each flat bar is the mean of its leaf. Two leaves is a crude average, the middle
+          of the road is a decent staircase, and by 14 leaves the steps are echoing the
+          noise instead of the curve. Watch train MSE fall the whole way while test MSE
+          bottoms out around 8 leaves and climbs back: the sweet spot, on the readout.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ---------------------------------------------------- 5 -->
+    <section id="pruning">
+      <h2>5. Overfitting &amp; pruning: the flexibility dial</h2>
+
+      <p>Left alone, a tree grows until every training point sits in its own pure leaf —
+        training error zero, test error embarrassed. Stopping it is regularisation, and you
+        get two flavors:</p>
+
+      <div class="derive">
+        <p class="derive-title">Flavor 1 — stop early (limit the tree while it grows)</p>
+        <ol>
+          <li><strong>max depth</strong> — how many questions deep a path may go.</li>
+          <li><strong>min samples per leaf</strong> — no box smaller than n points (a leaf
+            needs a crowd to vote, not one dictator).</li>
+          <li><strong>min samples to split</strong> — don't bother splitting a node with
+            fewer than n points.</li>
+        </ol>
+      </div>
+
+      <div class="derive">
+        <p class="derive-title">Flavor 2 — grow big, then prune (cost-complexity, ISLR's "weakest link")</p>
+        <ol>
+          <li>Grow a giant tree that fits the training data perfectly.</li>
+          <li>Score every subtree: $$\text{cost} = \text{training error} + \alpha \cdot (\#\text{leaves})$$</li>
+          <li>α is a dial: α = 0 keeps the giant; huge α collapses to a stump. Pick the
+            subtree with the best cost — usually by cross-validation.</li>
+        </ol>
+      </div>
+
+      <div class="callout">
+        <p class="callout-title">It's the same dial again</p>
+        <p>Depth ↔ k in KNN ↔ polynomial degree: <strong>tree depth is the flexibility
+          dial</strong> of the tree world
+          (<a href="../foundations.html#bias-variance">Foundations §7</a>). Too shallow:
+          high bias, boxes too big. Too deep: high variance, boxes memorize noise. Drag the
+          two demos above until the train/test gap tells you where the bottom of the U is
+          — that's your depth.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 6 -->
+    <section id="vs-linear">
+      <h2>6. Trees vs linear models</h2>
+
+      <p>Two opposite temperaments, and knowing which world you live in picks the winner
+        (ISLR calls this out as its own subsection):</p>
+
+      <table>
+        <thead>
+          <tr><th>If the real pattern is…</th><th>Reach for</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Smooth and roughly linear</strong> — a straight-ish effect, one
+              slope for the whole range</td>
+            <td>Linear / logistic regression: fewer knobs, honest extrapolation, coefficients
+              you can quote</td>
+          </tr>
+          <tr>
+            <td><strong>Curvy, tiered, or boundary-shaped</strong> — thresholds, plateaus,
+              "only matters above X"</td>
+            <td>A tree: no feature engineering, no transforms — it carves the shape itself</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The tree's superpower is <strong>readable complexity</strong>. A deep network is
+        complex <em>and</em> opaque; a logistic model is simple <em>and</em> readable. A
+        tree is the odd one out — complex <em>and</em> readable: every prediction is a
+        sentence ("if price &lt; 50k, and size ≥ 900, then…"), and you can rank features by
+        how much impurity each question destroyed along the way.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 7 -->
+    <section id="limits">
+      <h2>7. Strengths &amp; weaknesses</h2>
+
+      <ul>
+        <li><strong>✅ No scaling, mixed features welcome.</strong> Prices, sizes, and
+          yes/no columns can share a tree without normalization or one-hot gymnastics —
+          each question only ever touches one feature.</li>
+        <li><strong>✅ Interpretable to a fault.</strong> Export the rules, show them to a
+          stakeholder, done. No other model here lets every decision be audited.</li>
+        <li><strong>❌ Staircases instead of diagonals.</strong> A clean diagonal boundary
+          takes dozens of axis-aligned steps — many boxes, deep tree, fragile fit.</li>
+        <li><strong>❌ Unstable.</strong> Nudge the training data and the whole tree can
+          reorganize: early splits change, later branches swap (Géron's "instability").
+          Two trees trained on 95% of the same data can look like strangers.</li>
+        <li><strong>❌ Can't extrapolate.</strong> Predict beyond the training range and a
+          regression tree just keeps its edge leaf's mean flat forever — no idea that
+          trends continue. (Géron's comet: it would never see a brighter one coming.)</li>
+        <li><strong>❌ A single tree usually loses on accuracy.</strong> On its own it's a
+          weak learner — which is exactly why the next section exists.</li>
+      </ul>
+    </section>
+
+    <!-- ---------------------------------------------------- 8 -->
+    <section id="ensembles">
+      <h2>8. One tree → many trees</h2>
+
+      <p>A single tree's instability turns out to be a <em>feature</em> when you plant a
+        whole forest. Give each tree a slightly different, shuffled copy of the data
+        (bootstrap samples), let them all disagree, then <strong>average their votes</strong>
+        — the wobbles cancel and the shared signal survives. That's <strong>bagging</strong>,
+        and if you also randomize which features each tree may consider, you get the
+        <strong>random forest</strong>. <strong>Boosting</strong> goes the other way: many
+        small stumps built in sequence, each one focused on fixing the previous ones'
+        mistakes.</p>
+
+      <div class="callout">
+        <p class="callout-title">The trade you're making</p>
+        <p>An ensemble gives up the auditability of one flowchart for real accuracy — you
+          can no longer print the model on a page. This is flexibility vs interpretability
+          (<a href="../foundations.html#param-vs-non">Foundations §8</a>) in its purest
+          form. The details — bagging, random forests, boosting — are all here in ISLR
+          §8.2 / Géron ch.7; they're a natural future topic.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- 9 -->
+    <section id="code">
+      <h2>9. The whole thing in ~30 lines of NumPy</h2>
+
+      <p>Gini, brute-force splitting, recursion — there's genuinely nothing else in the
+        box:</p>
+
+<pre><code>import numpy as np
+
+def gini(y):
+    _, counts = np.unique(y, return_counts=True)
+    p = counts / counts.sum()
+    return 1 - (p ** 2).sum()
+
+def best_split(X, y):
+    parent, gain, best = gini(y), 0, None
+    for f in range(X.shape[1]):                 # every feature,
+        vals = np.unique(X[:, f])
+        for a, b in zip(vals[:-1], vals[1:]):   # every threshold
+            thr = (a + b) / 2
+            L, R = X[:, f] &lt; thr, X[:, f] &gt;= thr
+            if L.sum() &lt; 2 or R.sum() &lt; 2:
+                continue
+            w = (L.sum()*gini(y[L]) + R.sum()*gini(y[R])) / len(y)
+            if parent - w &gt; gain:               # keep the purest split
+                gain, best = parent - w, (f, thr)
+    return best
+
+def grow(X, y, depth=0, max_depth=5):
+    if depth == max_depth or len(np.unique(y)) == 1 or len(y) &lt; 4:
+        return lambda Xt: np.full(len(Xt), np.bincount(y).argmax())   # leaf: majority
+    f, thr = best_split(X, y)
+    L, R = X[:, f] &lt; thr, X[:, f] &gt;= thr
+    left, right = grow(X[L], y[L], depth+1, max_depth), grow(X[R], y[R], depth+1, max_depth)
+    return lambda Xt: np.where(Xt[:, f] &lt; thr, left(Xt), right(Xt))   # route the question
+
+# tree = grow(X_train, y_train, max_depth=4)
+# preds = tree(X_test)</code></pre>
+
+      <p>The functions <em>return functions</em> — training builds a nested yes/no machine
+        you then call with new rows. Swap the leaf line for <code>y.mean()</code> and
+        the split line for squared error, and you have a regression tree instead.</p>
+    </section>
+
+    <!-- ---------------------------------------------------- 10 -->
+    <section id="cheatsheet">
+      <h2>10. Cheat sheet</h2>
+
+      <div class="cheatsheet">
+        <div class="cs-item">
+          <h4>The algorithm</h4>
+          <p>Split → recurse → stop. Training = choosing questions by brute force.</p>
+          <p>Predict = drop the row down the tree to a leaf.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Gini (or entropy)</h4>
+          <p>$$\text{Gini} = 1 - \sum_m \hat{p}_m^2$$</p>
+          <p>0 = pure node. Best split = biggest weighted Gini drop. Entropy agrees.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Two flavors</h4>
+          <p>Classification leaf = majority vote; regression leaf = mean of the leaf.</p>
+          <p>Splits: Gini vs RSS. Same greedy habit either way.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Always axis-aligned</h4>
+          <p>Questions are "feature &lt; threshold?" — the map is rectangles and steps.</p>
+          <p>Diagonals cost many boxes; extrapolation isn't possible.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Regularize</h4>
+          <p>Stop early (depth, min-samples) or prune: cost = error + α · leaves.</p>
+          <p>Depth is the flexibility dial — pick it from the train/test gap.</p>
+        </div>
+        <div class="cs-item">
+          <h4>When to pick one</h4>
+          <p>Nonlinear/threshold patterns, mixed features, stakeholders who ask "why?".</p>
+          <p>Reach for linear models when the pattern is smooth and roughly straight.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Honest weaknesses</h4>
+          <p>Unstable (data nudges reshuffle the tree) · no extrapolation · rarely wins alone.</p>
+          <p>Instability is exactly what ensembles are for.</p>
+        </div>
+        <div class="cs-item">
+          <h4>Forests ahead</h4>
+          <p>Bag → average = bagging; random features = random forest; sequential fixes =
+            boosting.</p>
+          <p>ISLR §8.2 · Géron ch.7 — a future topic.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <p class="callout-title">The one-sentence version</p>
+        <p>Ask the question that splits the crowd into the two purest groups, repeat until
+          you're told to stop, and let each box vote or average — a flowchart learned by
+          brute force, one axis-aligned cut at a time.</p>
+      </div>
+    </section>
+
+    <footer style="margin-top:64px;font-size:13.5px;color:var(--muted);">
+      <p><a href="../index.html">← All topics</a> · Previous: <a href="naive-bayes.html">Naive Bayes</a> · Next up: Neural Networks (coming soon)</p>
+      <p class="further">Further reading: ISLR §8.1–8.2 · Géron ch.6 (ch.7 for forests)</p>
+      <p>ML Notes — <span data-year>2026</span></p>
+    </footer>
+  </main>
+
+  <!-- ======================= page TOC ======================= -->
+  <details class="page-toc" id="page-toc" open>
+    <summary>On this page</summary>
+    <p class="toc-title">On this page</p>
+    <nav aria-label="Table of contents">
+      <ol>
+        <li><a href="#big-idea">1. Twenty questions</a></li>
+        <li><a href="#purity">2. Purity: Gini &amp; entropy</a></li>
+        <li><a href="#growing">3. Growing the tree</a></li>
+        <li><a href="#regression-tree">4. Regression trees</a></li>
+        <li><a href="#pruning">5. Overfitting &amp; pruning</a></li>
+        <li><a href="#vs-linear">6. Trees vs linear models</a></li>
+        <li><a href="#limits">7. Strengths &amp; weaknesses</a></li>
+        <li><a href="#ensembles">8. One tree → many trees</a></li>
+        <li><a href="#code">9. NumPy from scratch</a></li>
+        <li><a href="#cheatsheet">10. Cheat sheet</a></li>
+      </ol>
+    </nav>
+  </details>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+</body>
+</html>

@@ -21,7 +21,7 @@ rendering); everything else works offline.
 | 02 | [Logistic Regression](topics/logistic-regression.html) | done |
 | 03 | [K-Nearest Neighbors](topics/k-nearest-neighbors.html) | done |
 | 04 | [Naive Bayes](topics/naive-bayes.html) | done |
-| 05 | Decision Trees | soon |
+| 05 | [Decision Trees](topics/decision-trees.html) | done |
 | 06 | Neural Networks | soon |
 
 Start with [Foundations](foundations.html) — the shared vocabulary — then work
