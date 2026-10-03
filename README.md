@@ -31,6 +31,20 @@ through 01 upward; each lesson assumes you've read the ones before it.
 the Bayes classifier, …) live in `foundations.html` under the *Foundations*
 sidebar group; anything specific to one algorithm lives in that topic's page.
 
+## References
+
+Source books live in `Materials/Books/` (gitignored — add your own copies):
+
+- **An Introduction to Statistical Learning** — James, Witten, Hastie,
+  Tibshirani (Python edition). Curriculum backbone: lesson structure and the
+  "Further reading" section citations in each footer follow it.
+- **Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow** —
+  Aurélien Géron. Practical side: implementation patterns, evaluation
+  metrics (precision/recall/ROC).
+
+Footers cite exact sections (e.g. `ISLR §4.1–4.3 · Géron ch.3`); page lookups
+happen on demand while writing a lesson.
+
 ## Structure
 
 ```
